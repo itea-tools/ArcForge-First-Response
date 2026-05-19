@@ -1,5 +1,19 @@
 ﻿# ArcForge First Response
-# ArcForge First Response Report v0.45
+# ArcForge First Response Report v0.46
+#
+# v0.46 HTML report System status row boundary notes:
+# - v0.46 moves the small static System status/label row helper into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it only depends on an
+#   explicit record, optional display label, and existing HTML/status helpers.
+# - New-ArcForgeHtmlReport, New-ArcForgeSystemEvidenceHtml,
+#   New-ArcForgeSystemEvidenceOnlyRowHtml, and
+#   New-ArcForgeSystemDetailSectionHtml remain in the main script in this
+#   release.
+# - The full System evidence assembly, detail section builder, final HTML
+#   template, embedded CSS, report output paths, scoring, console output, TXT
+#   output, detection logic, System labels, anchors, card order, layout,
+#   default-open behavior, and collapsed detail behavior are intended to remain
+#   unchanged.
 #
 # v0.45 HTML report System evidence row boundary notes:
 # - v0.45 moves the small static System evidence row helper into
@@ -1148,6 +1162,13 @@ $GroupsHtml
     # -------------------------------------------------------------------------
     # 05.05 System Presentation Helpers
     # -------------------------------------------------------------------------
+    # v0.46 boundary update:
+    # New-ArcForgeSystemStatusLabelRowHtml now lives in
+    # scripts/ArcForge.HtmlReport.ps1 because it only renders an explicit
+    # status/label record into one compact static System snapshot row. Keep the
+    # larger System evidence assembly here because it still owns renderer-local
+    # evidence lookup and detail section assembly steps.
+    #
     # v0.45 boundary update:
     # New-ArcForgeSystemEvidenceRowHtml now lives in
     # scripts/ArcForge.HtmlReport.ps1 because it only renders an explicit
@@ -1251,32 +1272,10 @@ $GroupsHtml
         # the same static key/value/status markup without moving the larger
         # evidence assembly out of this renderer yet.
 
-        # Renders a compact status + label row for snapshot cards.
-        # Use this when the overview should communicate the signal without
-        # cramming long evidence values into a narrow responsive card.
-        # The full evidence value should remain available in the matching
-        # details section.
-        # Future module owner: scripts/ArcForge.Html.System.ps1
-        function New-ArcForgeSystemStatusLabelRowHtml {
-            param (
-                [object]$Record,
-                [string]$DisplayLabel
-            )
-
-            $Status = if ($Record.Status) { [string]$Record.Status } else { "UNKNOWN" }
-            $StatusClass = New-StatusClass -Status $Status -ClassPrefix "system-status"
-
-            $Label = if ([string]::IsNullOrWhiteSpace($DisplayLabel)) { $Record.Label } else { $DisplayLabel }
-            $SafeStatus = ConvertTo-HtmlSafeText $Status
-            $SafeLabel = ConvertTo-HtmlSafeText (($Label -replace ':$', '').Trim())
-
-            return @"
-                    <div class="system-status-label-row">
-                        <span class="system-status-pill $StatusClass">$SafeStatus</span>
-                        <span class="system-evidence-label">$SafeLabel</span>
-                    </div>
-"@
-        }
+        # New-ArcForgeSystemStatusLabelRowHtml lives in scripts/ArcForge.HtmlReport.ps1.
+        # Keep compact status/label snapshot row rendering centralized there so
+        # the System overview can reuse the same static status-pill markup
+        # without moving the larger evidence assembly out of this renderer yet.
 
         # Renders identity/platform evidence without a health-style OK pill.
         # Endpoint identity fields are evidence capture values, not pass/fail

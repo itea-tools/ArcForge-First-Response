@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.45 extraction scope:
+# v0.46 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -34,6 +34,9 @@
 #   built from already-prepared row HTML and explicit link parameters.
 # - New-ArcForgeSystemEvidenceRowHtml owns static System evidence row markup
 #   built from an explicit record and optional display label.
+# - New-ArcForgeSystemStatusLabelRowHtml owns static compact System
+#   status/label row markup built from an explicit record and optional display
+#   label.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
 # - Future releases can move additional HTML helpers in small, tested slices.
 
@@ -331,6 +334,35 @@ function New-ArcForgeSystemEvidenceRowHtml {
                 <span class="system-evidence-label">$SafeLabel</span>
                 <span class="system-evidence-value">$SafeValue</span>
             </div>
+"@
+}
+
+# Renders a compact status + label row for System snapshot cards.
+# Use this when the overview should communicate the signal without cramming long
+# evidence values into a narrow responsive card. The full evidence value should
+# remain available in the matching details section.
+# v0.46: Moved from the main renderer after confirming it only depends on an
+# explicit record, optional display label, New-StatusClass, and
+# ConvertTo-HtmlSafeText.
+# Module owner: scripts/ArcForge.HtmlReport.ps1
+function New-ArcForgeSystemStatusLabelRowHtml {
+    param (
+        [object]$Record,
+        [string]$DisplayLabel
+    )
+
+    $Status = if ($Record.Status) { [string]$Record.Status } else { "UNKNOWN" }
+    $StatusClass = New-StatusClass -Status $Status -ClassPrefix "system-status"
+
+    $Label = if ([string]::IsNullOrWhiteSpace($DisplayLabel)) { $Record.Label } else { $DisplayLabel }
+    $SafeStatus = ConvertTo-HtmlSafeText $Status
+    $SafeLabel = ConvertTo-HtmlSafeText (($Label -replace ':$', '').Trim())
+
+    return @"
+                    <div class="system-status-label-row">
+                        <span class="system-status-pill $StatusClass">$SafeStatus</span>
+                        <span class="system-evidence-label">$SafeLabel</span>
+                    </div>
 "@
 }
 
