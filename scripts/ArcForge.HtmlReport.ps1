@@ -1,4 +1,4 @@
-# ArcForge First Response - HTML Report Helpers
+﻿# ArcForge First Response - HTML Report Helpers
 #
 # This module supports ArcForge's static HTML report.
 #
@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.42 extraction scope:
+# v0.43 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -28,6 +28,8 @@
 #   segment markup used by Report Navigation.
 # - New-ArcForgeReportNavigationHtml owns the static Report Navigation/sidebar
 #   markup used by the HTML report.
+# - New-ArcForgeSystemCollapsibleCardHtml owns shared static <details> card
+#   markup used by the System Overview and System detail sections.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
 # - Future releases can move additional HTML helpers in small, tested slices.
 
@@ -291,6 +293,61 @@ $CardsHtml
         </section>
 "@
     }
+
+# -----------------------------------------------------------------------------
+# System Presentation Helpers
+# -----------------------------------------------------------------------------
+# v0.43 extracted slice: small static System presentation wrapper.
+# This helper does not collect evidence, change scoring, or alter console/TXT
+# output. It only builds static <details> card markup from prepared HTML.
+
+# Wraps a System body block in a native collapsible card.
+# This keeps the System section segmented without adding JavaScript or
+# changing the underlying evidence/check logic.
+# v0.43: Moved from the main renderer after confirming it only
+# depends on explicit parameters and ConvertTo-HtmlSafeText.
+function New-ArcForgeSystemCollapsibleCardHtml {
+    param (
+        [string]$Id = "",
+        [string]$Title,
+        [string]$Description,
+        [string]$BodyHtml,
+        [string]$ExtraClass = "",
+        [bool]$OpenByDefault = $false
+    )
+
+    $SafeTitle = ConvertTo-HtmlSafeText $Title
+    $SafeDescription = ConvertTo-HtmlSafeText $Description
+    $CardClass = "system-collapsible-card"
+    $IdAttribute = ""
+    $OpenAttribute = ""
+
+    if (-not [string]::IsNullOrWhiteSpace($ExtraClass)) {
+        $CardClass = "$CardClass $ExtraClass"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($Id)) {
+        $SafeId = ConvertTo-HtmlSafeText $Id
+        $IdAttribute = " id=`"$SafeId`""
+    }
+
+    if ($OpenByDefault) {
+        $OpenAttribute = " open"
+    }
+
+    return @"
+        <details$IdAttribute class="$CardClass"$OpenAttribute>
+            <summary class="system-collapsible-summary">
+                <span class="system-collapsible-title">$SafeTitle</span>
+                <span class="system-collapsible-chevron" aria-hidden="true">›</span>
+            </summary>
+            <div class="system-collapsible-card-body">
+                <p class="system-collapsible-description">$SafeDescription</p>
+$BodyHtml
+            </div>
+        </details>
+"@
+}
 
 # -----------------------------------------------------------------------------
 # Report Navigation Helpers

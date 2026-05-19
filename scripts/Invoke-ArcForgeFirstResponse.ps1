@@ -1,6 +1,16 @@
 ﻿# ArcForge First Response
-# ArcForge First Response Report v0.42
+# ArcForge First Response Report v0.43
 #
+# v0.43 HTML report System Overview boundary notes:
+# - v0.43 moves the smallest safe System presentation helper into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it only builds a static
+#   collapsible card from explicit parameters.
+# - New-ArcForgeHtmlReport and New-ArcForgeSystemEvidenceHtml remain in the
+#   main script in this release.
+# - The final HTML template, embedded CSS, report output paths, scoring,
+#   console output, TXT output, detection logic, System labels, anchors, card
+#   order, layout, default-open behavior, and collapsed detail behavior are
+#   intended to remain unchanged.
 # v0.42 HTML report navigation boundary notes:
 # - v0.42 moves the small static Report Navigation/sidebar helpers into
 #   scripts/ArcForge.HtmlReport.ps1 after confirming they only depend on
@@ -1114,6 +1124,14 @@ $GroupsHtml
     # -------------------------------------------------------------------------
     # 05.05 System Presentation Helpers
     # -------------------------------------------------------------------------
+    # v0.43 boundary update:
+    # New-ArcForgeSystemCollapsibleCardHtml now lives in
+    # scripts/ArcForge.HtmlReport.ps1 because it only wraps explicit text/body
+    # parameters in static <details> markup.
+    # Keep the larger System evidence assembly here for now because it still owns
+    # several renderer-local data lookups, row builders, and detail section
+    # assembly steps.
+    #
     # v0.35 future slice: System overview and System detail HTML helpers.
     # FUTURE MODULE BOUNDARY: this is the first major report section with custom
     # presentation logic. When modularizing, extract System rendering separately
@@ -1331,53 +1349,6 @@ $RowsHtml
                     </div>
 $LinkHtml
                 </article>
-"@
-        }
-
-        # Wraps a System body block in a native collapsible card.
-        # This keeps the System section segmented without adding JavaScript or
-        # changing the underlying evidence/check logic.
-        # Future module owner: scripts/ArcForge.Html.System.ps1
-        function New-ArcForgeSystemCollapsibleCardHtml {
-            param (
-                [string]$Id = "",
-                [string]$Title,
-                [string]$Description,
-                [string]$BodyHtml,
-                [string]$ExtraClass = "",
-                [bool]$OpenByDefault = $false
-            )
-
-            $SafeTitle = ConvertTo-HtmlSafeText $Title
-            $SafeDescription = ConvertTo-HtmlSafeText $Description
-            $CardClass = "system-collapsible-card"
-            $IdAttribute = ""
-            $OpenAttribute = ""
-
-            if (-not [string]::IsNullOrWhiteSpace($ExtraClass)) {
-                $CardClass = "$CardClass $ExtraClass"
-            }
-
-            if (-not [string]::IsNullOrWhiteSpace($Id)) {
-                $SafeId = ConvertTo-HtmlSafeText $Id
-                $IdAttribute = " id=`"$SafeId`""
-            }
-
-            if ($OpenByDefault) {
-                $OpenAttribute = " open"
-            }
-
-            return @"
-                <details$IdAttribute class="$CardClass"$OpenAttribute>
-                    <summary class="system-collapsible-summary">
-                        <span class="system-collapsible-title">$SafeTitle</span>
-                        <span class="system-collapsible-chevron" aria-hidden="true">›</span>
-                    </summary>
-                    <div class="system-collapsible-card-body">
-                        <p class="system-collapsible-description">$SafeDescription</p>
-$BodyHtml
-                    </div>
-                </details>
 "@
         }
 
