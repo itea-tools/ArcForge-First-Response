@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.44 extraction scope:
+# v0.45 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -32,6 +32,8 @@
 #   markup used by the System Overview and System detail sections.
 # - New-ArcForgeSystemPanelHtml owns static System snapshot panel markup
 #   built from already-prepared row HTML and explicit link parameters.
+# - New-ArcForgeSystemEvidenceRowHtml owns static System evidence row markup
+#   built from an explicit record and optional display label.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
 # - Future releases can move additional HTML helpers in small, tested slices.
 
@@ -299,9 +301,39 @@ $CardsHtml
 # -----------------------------------------------------------------------------
 # System Presentation Helpers
 # -----------------------------------------------------------------------------
-# v0.43 extracted slice: small static System presentation wrapper.
-# This helper does not collect evidence, change scoring, or alter console/TXT
-# output. It only builds static <details> card markup from prepared HTML.
+# These helpers do not collect evidence, change scoring, or alter console/TXT
+# output. They only build static System HTML from prepared values.
+
+# Renders a single compact status-first key/value row.
+# The status class only affects the HTML report and does not change
+# readiness scoring or report data.
+# v0.45: Moved from the main renderer after confirming it only depends on an
+# explicit record, optional display label, New-StatusClass, and
+# ConvertTo-HtmlSafeText.
+# Module owner: scripts/ArcForge.HtmlReport.ps1
+function New-ArcForgeSystemEvidenceRowHtml {
+    param (
+        [object]$Record,
+        [string]$DisplayLabel
+    )
+
+    $Status = if ($Record.Status) { [string]$Record.Status } else { "UNKNOWN" }
+    $StatusClass = New-StatusClass -Status $Status -ClassPrefix "system-status"
+
+    $Label = if ([string]::IsNullOrWhiteSpace($DisplayLabel)) { $Record.Label } else { $DisplayLabel }
+    $SafeStatus = ConvertTo-HtmlSafeText $Status
+    $SafeLabel = ConvertTo-HtmlSafeText (($Label -replace ':$', '').Trim())
+    $SafeValue = ConvertTo-HtmlSafeText $Record.Value
+
+    return @"
+            <div class="system-evidence-row">
+                <span class="system-status-pill $StatusClass">$SafeStatus</span>
+                <span class="system-evidence-label">$SafeLabel</span>
+                <span class="system-evidence-value">$SafeValue</span>
+            </div>
+"@
+}
+
 
 # Wraps a System body block in a native collapsible card.
 # This keeps the System section segmented without adding JavaScript or

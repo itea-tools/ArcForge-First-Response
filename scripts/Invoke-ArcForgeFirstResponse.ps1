@@ -1,5 +1,18 @@
 ﻿# ArcForge First Response
-# ArcForge First Response Report v0.44
+# ArcForge First Response Report v0.45
+#
+# v0.45 HTML report System evidence row boundary notes:
+# - v0.45 moves the small static System evidence row helper into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it only depends on an
+#   explicit record, optional display label, and existing HTML/status helpers.
+# - New-ArcForgeHtmlReport, New-ArcForgeSystemEvidenceHtml, and
+#   New-ArcForgeSystemDetailSectionHtml remain in the main script in this
+#   release.
+# - The full System evidence assembly, detail section builder, final HTML
+#   template, embedded CSS, report output paths, scoring, console output, TXT
+#   output, detection logic, System labels, anchors, card order, layout,
+#   default-open behavior, and collapsed detail behavior are intended to remain
+#   unchanged.
 #
 # v0.44 HTML report System evidence boundary notes:
 # - v0.44 moves the small static System snapshot panel helper into
@@ -1135,12 +1148,19 @@ $GroupsHtml
     # -------------------------------------------------------------------------
     # 05.05 System Presentation Helpers
     # -------------------------------------------------------------------------
+    # v0.45 boundary update:
+    # New-ArcForgeSystemEvidenceRowHtml now lives in
+    # scripts/ArcForge.HtmlReport.ps1 because it only renders an explicit
+    # key/value/status record into one static System evidence row. Keep the
+    # larger System evidence assembly here because it still owns renderer-local
+    # evidence lookup and detail section assembly steps.
+    #
     # v0.44 boundary update:
     # New-ArcForgeSystemPanelHtml now lives in scripts/ArcForge.HtmlReport.ps1
     # because it only wraps already-prepared row HTML and explicit panel/link
     # parameters in static markup. Keep the larger System evidence assembly here
-    # because it still owns renderer-local evidence lookup, row construction, and
-    # detail section assembly steps.
+    # because it still owns renderer-local evidence lookup and detail section
+    # assembly steps.
     #
     # v0.43 boundary update:
     # New-ArcForgeSystemCollapsibleCardHtml now lives in
@@ -1226,32 +1246,10 @@ $GroupsHtml
             }
         }
 
-        # Renders a single compact status-first key/value row.
-        # The status class only affects the HTML report and does not change
-        # readiness scoring or report data.
-        # Future module owner: scripts/ArcForge.Html.System.ps1
-        function New-ArcForgeSystemEvidenceRowHtml {
-            param (
-                [object]$Record,
-                [string]$DisplayLabel
-            )
-
-            $Status = if ($Record.Status) { [string]$Record.Status } else { "UNKNOWN" }
-            $StatusClass = New-StatusClass -Status $Status -ClassPrefix "system-status"
-
-            $Label = if ([string]::IsNullOrWhiteSpace($DisplayLabel)) { $Record.Label } else { $DisplayLabel }
-            $SafeStatus = ConvertTo-HtmlSafeText $Status
-            $SafeLabel = ConvertTo-HtmlSafeText (($Label -replace ':$', '').Trim())
-            $SafeValue = ConvertTo-HtmlSafeText $Record.Value
-
-            return @"
-                    <div class="system-evidence-row">
-                        <span class="system-status-pill $StatusClass">$SafeStatus</span>
-                        <span class="system-evidence-label">$SafeLabel</span>
-                        <span class="system-evidence-value">$SafeValue</span>
-                    </div>
-"@
-        }
+        # New-ArcForgeSystemEvidenceRowHtml lives in scripts/ArcForge.HtmlReport.ps1.
+        # Keep row rendering centralized there so System detail sections can use
+        # the same static key/value/status markup without moving the larger
+        # evidence assembly out of this renderer yet.
 
         # Renders a compact status + label row for snapshot cards.
         # Use this when the overview should communicate the signal without
