@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.39 extraction scope:
+# v0.40 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -20,6 +20,8 @@
 #   by the HTML report.
 # - Get-ArcForgeFlattenedLines owns generic line flattening used by the HTML
 #   report.
+# - New-ArcForgeReadinessOverviewHtml owns the static Readiness Overview card
+#   markup used by the HTML report.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
 # - Future releases can move additional HTML helpers in small, tested slices.
 
@@ -149,3 +151,85 @@ function Get-ArcForgeFlattenedLines {
     )
 }
 
+    # Builds the HTML block for the Readiness Overview dashboard cards.
+    #
+    # The card data is prepared by Get-ArcForgeSectionReadiness. This helper only
+    # converts those objects into HTML markup for the final report.
+    # Future module owner: scripts/ArcForge.Html.Navigation.ps1
+    function New-ArcForgeReadinessOverviewHtml {
+        param (
+            [object[]]$ReadinessCards
+        )
+
+        $CardBlocks = @()
+
+        foreach ($Card in $ReadinessCards) {
+            $SafeName = ConvertTo-HtmlSafeText $Card.Name
+            $SafeStatus = ConvertTo-HtmlSafeText $Card.Status
+            $SafeSummary = ConvertTo-HtmlSafeText $Card.Summary
+
+            # v0.22 presentation-only status classes.
+            # These classes control the left-border accent for the Readiness
+            # Overview cards. They do not change the underlying status values
+            # or the shared StatusClass property used elsewhere in the HTML.
+            $CardVisualClass = switch ($Card.Status) {
+                "OK"        { "readiness-card-ok" }
+                "Attention" { "readiness-card-warn" }
+                "Critical"  { "readiness-card-fail" }
+                default     { "readiness-card-unknown" }
+            }
+
+            # v0.22 presentation-only navigation target.
+            # The Readiness Overview cards now behave like dashboard shortcuts.
+            # Each card jumps to the matching detailed report section by using
+            # the same static anchor IDs already used by the sidebar navigation.
+            #
+            # Important:
+            # - This is only an HTML link target.
+            # - No JavaScript is used.
+            # - This does not change check logic, console output, or TXT output.
+            # - If a card does not jump correctly, compare these anchor values
+            #   with the matching id="section-name" values in the HTML sections.
+            $CardAnchor = switch ($Card.Name) {
+                "System"             { "system" }
+                "Network"            { "network" }
+                "Software Readiness" { "software-readiness" }
+                "Security"           { "security" }
+                "Updates"            { "updates" }
+                default              { "readiness-overview" }
+            }
+
+            $SafeCardAnchor = ConvertTo-HtmlSafeText $CardAnchor
+
+            $CardBlocks += @"
+            <a class="readiness-card-link" href="#$SafeCardAnchor" title="Jump to $SafeName details" aria-label="Jump to $SafeName details">
+                <article class="readiness-card $($Card.StatusClass) $CardVisualClass">
+                    <div class="readiness-card-header">
+                        <h3>$SafeName</h3>
+                        <span class="readiness-status">$SafeStatus</span>
+                    </div>
+                    <div class="readiness-counts" aria-label="$SafeName readiness counts">
+                        <span class="readiness-count-item readiness-count-ok"><strong>$($Card.OkCount)</strong><span>OK</span></span>
+                        <span class="readiness-count-item readiness-count-warn"><strong>$($Card.WarnCount)</strong><span>WARN</span></span>
+                        <span class="readiness-count-item readiness-count-fail"><strong>$($Card.FailCount)</strong><span>FAIL</span></span>
+                    </div>
+                    <p class="readiness-card-summary">$SafeSummary</p>
+                </article>
+            </a>
+"@
+        }
+
+        $CardsHtml = $CardBlocks -join "`n"
+
+        return @"
+        <section id="readiness-overview" class="card section">
+            <div class="section-title">
+                <h2>Readiness Overview</h2>
+                <p>Dashboard-style summary of major battlestation readiness areas.</p>
+            </div>
+            <div class="readiness-grid">
+$CardsHtml
+            </div>
+        </section>
+"@
+    }
