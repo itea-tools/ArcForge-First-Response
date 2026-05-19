@@ -1,5 +1,13 @@
 ﻿# ArcForge First Response
-# ArcForge First Response Report v0.40
+# ArcForge First Response Report v0.41
+#
+# v0.41 HTML section readiness data boundary notes:
+# - v0.41 moves Get-ArcForgeSectionReadiness into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it only depends on its
+#   own parameters and the existing flattened-line helper.
+# - New-ArcForgeHtmlReport remains in the main script in this release.
+# - No HTML layout, CSS, console strings, TXT strings, scoring, detection logic,
+#   parsing behavior, or report behavior changes are intended.
 #
 # v0.40 HTML readiness overview helper extraction notes:
 # - v0.40 extracts the next small readiness overview presentation helper into
@@ -535,60 +543,10 @@ function New-ArcForgeHtmlReport {
     # These helpers build the dashboard-style readiness cards from existing raw
     # report lines. They do not rerun checks or change scoring rules.
 
-    # Scores one report area for the Readiness Overview cards.
-    #
-    # This function counts how many [OK], [WARN], and [FAIL] lines exist in a
-    # section, then assigns the card status shown in the HTML dashboard.
-    #
-    # Output:
-    # - PSCustomObject containing name, status label, CSS class, counts, and summary.
-    # Future module owner: scripts/ArcForge.Html.Navigation.ps1
-    function Get-ArcForgeSectionReadiness {
-        param (
-            [string]$Name,
-            [object[]]$Lines
-        )
-
-        $FlattenedLines = Get-ArcForgeFlattenedLines -Lines $Lines
-
-        $OkCount = @($FlattenedLines | Where-Object { $_ -match '^\[OK\]' }).Count
-        $WarnCount = @($FlattenedLines | Where-Object { $_ -match '^\[WARN\]' }).Count
-        $FailCount = @($FlattenedLines | Where-Object { $_ -match '^\[FAIL\]' }).Count
-
-        if ($FailCount -gt 0) {
-            $Status = "Critical"
-            $StatusClass = "readiness-critical"
-            $Summary = "Critical findings require attention."
-        }
-        elseif ($WarnCount -gt 0) {
-            $Status = "Attention"
-            $StatusClass = "readiness-attention"
-            $Summary = "Warnings found. Review recommended actions."
-        }
-        elseif ($OkCount -gt 0) {
-            $Status = "OK"
-            $StatusClass = "readiness-ok"
-            $Summary = "All checks passed."
-        }
-        else {
-            $Status = "No Data"
-            $StatusClass = "readiness-neutral"
-            $Summary = "No findings detected in this section."
-        }
-
-        [pscustomobject]@{
-            Name        = $Name
-            Status      = $Status
-            StatusClass = $StatusClass
-            OkCount     = $OkCount
-            WarnCount   = $WarnCount
-            FailCount   = $FailCount
-            Summary     = $Summary
-        }
-    }
-
-    # New-ArcForgeReadinessOverviewHtml now lives in scripts/ArcForge.HtmlReport.ps1.
-    # Get-ArcForgeSectionReadiness stays here until a later staged extraction.
+    # Get-ArcForgeSectionReadiness and New-ArcForgeReadinessOverviewHtml now live
+    # in scripts/ArcForge.HtmlReport.ps1. The readiness data boundary is kept
+    # separate from the large final HTML renderer so this release does not touch
+    # the fragile report template, CSS, navigation, or file output logic.
 
     # -------------------------------------------------------------------------
     # 05.03 Endpoint Summary Helper

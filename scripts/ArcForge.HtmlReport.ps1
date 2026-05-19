@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.40 extraction scope:
+# v0.41 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -20,6 +20,8 @@
 #   by the HTML report.
 # - Get-ArcForgeFlattenedLines owns generic line flattening used by the HTML
 #   report.
+# - Get-ArcForgeSectionReadiness owns Readiness Overview card data prepared
+#   from already-captured report section lines.
 # - New-ArcForgeReadinessOverviewHtml owns the static Readiness Overview card
 #   markup used by the HTML report.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
@@ -149,6 +151,58 @@ function Get-ArcForgeFlattenedLines {
             }
         }
     )
+}
+
+# Scores one report area for the Readiness Overview cards.
+#
+# This helper prepares card data from already-captured report section lines. It
+# does not run checks, write output, change scoring, or assemble the final HTML
+# document.
+#
+# Output:
+# - PSCustomObject containing name, status label, CSS class, counts, and summary.
+function Get-ArcForgeSectionReadiness {
+    param (
+        [string]$Name,
+        [object[]]$Lines
+    )
+
+    $FlattenedLines = Get-ArcForgeFlattenedLines -Lines $Lines
+
+    $OkCount = @($FlattenedLines | Where-Object { $_ -match '^\[OK\]' }).Count
+    $WarnCount = @($FlattenedLines | Where-Object { $_ -match '^\[WARN\]' }).Count
+    $FailCount = @($FlattenedLines | Where-Object { $_ -match '^\[FAIL\]' }).Count
+
+    if ($FailCount -gt 0) {
+        $Status = "Critical"
+        $StatusClass = "readiness-critical"
+        $Summary = "Critical findings require attention."
+    }
+    elseif ($WarnCount -gt 0) {
+        $Status = "Attention"
+        $StatusClass = "readiness-attention"
+        $Summary = "Warnings found. Review recommended actions."
+    }
+    elseif ($OkCount -gt 0) {
+        $Status = "OK"
+        $StatusClass = "readiness-ok"
+        $Summary = "All checks passed."
+    }
+    else {
+        $Status = "No Data"
+        $StatusClass = "readiness-neutral"
+        $Summary = "No findings detected in this section."
+    }
+
+    [pscustomobject]@{
+        Name        = $Name
+        Status      = $Status
+        StatusClass = $StatusClass
+        OkCount     = $OkCount
+        WarnCount   = $WarnCount
+        FailCount   = $FailCount
+        Summary     = $Summary
+    }
 }
 
     # Builds the HTML block for the Readiness Overview dashboard cards.
