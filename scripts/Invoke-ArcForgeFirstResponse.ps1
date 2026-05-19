@@ -1,6 +1,17 @@
 ﻿# ArcForge First Response
-# ArcForge First Response Report v0.43
+# ArcForge First Response Report v0.44
 #
+# v0.44 HTML report System evidence boundary notes:
+# - v0.44 moves the small static System snapshot panel helper into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it only wraps explicit
+#   title, description, row HTML, class, and link parameters.
+# - New-ArcForgeHtmlReport and New-ArcForgeSystemEvidenceHtml remain in the
+#   main script in this release.
+# - The full System evidence assembly, detail section builder, final HTML
+#   template, embedded CSS, report output paths, scoring, console output, TXT
+#   output, detection logic, System labels, anchors, card order, layout,
+#   default-open behavior, and collapsed detail behavior are intended to remain
+#   unchanged.
 # v0.43 HTML report System Overview boundary notes:
 # - v0.43 moves the smallest safe System presentation helper into
 #   scripts/ArcForge.HtmlReport.ps1 after confirming it only builds a static
@@ -1124,13 +1135,17 @@ $GroupsHtml
     # -------------------------------------------------------------------------
     # 05.05 System Presentation Helpers
     # -------------------------------------------------------------------------
+    # v0.44 boundary update:
+    # New-ArcForgeSystemPanelHtml now lives in scripts/ArcForge.HtmlReport.ps1
+    # because it only wraps already-prepared row HTML and explicit panel/link
+    # parameters in static markup. Keep the larger System evidence assembly here
+    # because it still owns renderer-local evidence lookup, row construction, and
+    # detail section assembly steps.
+    #
     # v0.43 boundary update:
     # New-ArcForgeSystemCollapsibleCardHtml now lives in
     # scripts/ArcForge.HtmlReport.ps1 because it only wraps explicit text/body
     # parameters in static <details> markup.
-    # Keep the larger System evidence assembly here for now because it still owns
-    # several renderer-local data lookups, row builders, and detail section
-    # assembly steps.
     #
     # v0.35 future slice: System overview and System detail HTML helpers.
     # FUTURE MODULE BOUNDARY: this is the first major report section with custom
@@ -1302,53 +1317,6 @@ $GroupsHtml
                         <span class="system-evidence-label">$SafeLabel</span>
                         <span class="$ValueClass">$SafeValue</span>
                     </div>
-"@
-        }
-
-        # Builds a System snapshot panel. Optional anchor-style footer links let
-        # the snapshot stay compact while still giving technicians a clear path
-        # to deeper static evidence sections later in the same HTML report.
-        # Future module owner: scripts/ArcForge.Html.System.ps1
-        function New-ArcForgeSystemPanelHtml {
-            param (
-                [string]$Title,
-                [string]$Description,
-                [string]$RowsHtml,
-                [string]$ExtraClass = "",
-                [string]$LinkHref = "",
-                [string]$LinkText = ""
-            )
-
-            $SafeTitle = ConvertTo-HtmlSafeText $Title
-            $SafeDescription = ConvertTo-HtmlSafeText $Description
-            $PanelClass = "system-evidence-panel"
-
-            if (-not [string]::IsNullOrWhiteSpace($ExtraClass)) {
-                $PanelClass = "$PanelClass $ExtraClass"
-            }
-
-            $LinkHtml = ""
-            if (-not [string]::IsNullOrWhiteSpace($LinkHref) -and -not [string]::IsNullOrWhiteSpace($LinkText)) {
-                $SafeLinkHref = ConvertTo-HtmlSafeText $LinkHref
-                $SafeLinkText = ConvertTo-HtmlSafeText $LinkText
-                $LinkHtml = @"
-                    <div class="system-panel-footer">
-                        <a class="system-panel-link" href="$SafeLinkHref"><span class="system-panel-link-text">$SafeLinkText</span></a>
-                    </div>
-"@
-            }
-
-            return @"
-                <article class="$PanelClass">
-                    <div class="system-panel-header">
-                        <h3>$SafeTitle</h3>
-                        <p>$SafeDescription</p>
-                    </div>
-                    <div class="system-evidence-rows">
-$RowsHtml
-                    </div>
-$LinkHtml
-                </article>
 "@
         }
 

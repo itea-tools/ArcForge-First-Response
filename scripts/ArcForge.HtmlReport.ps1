@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.43 extraction scope:
+# v0.44 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -30,6 +30,8 @@
 #   markup used by the HTML report.
 # - New-ArcForgeSystemCollapsibleCardHtml owns shared static <details> card
 #   markup used by the System Overview and System detail sections.
+# - New-ArcForgeSystemPanelHtml owns static System snapshot panel markup
+#   built from already-prepared row HTML and explicit link parameters.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
 # - Future releases can move additional HTML helpers in small, tested slices.
 
@@ -346,6 +348,56 @@ function New-ArcForgeSystemCollapsibleCardHtml {
 $BodyHtml
             </div>
         </details>
+"@
+}
+
+# Builds a System snapshot panel from already-prepared row HTML.
+# Optional anchor-style footer links let the snapshot stay compact while still
+# giving technicians a clear path to deeper static evidence sections later in
+# the same HTML report.
+#
+# v0.44: Moved from the main renderer after confirming it only depends on
+# explicit parameters and ConvertTo-HtmlSafeText.
+function New-ArcForgeSystemPanelHtml {
+    param (
+        [string]$Title,
+        [string]$Description,
+        [string]$RowsHtml,
+        [string]$ExtraClass = "",
+        [string]$LinkHref = "",
+        [string]$LinkText = ""
+    )
+
+    $SafeTitle = ConvertTo-HtmlSafeText $Title
+    $SafeDescription = ConvertTo-HtmlSafeText $Description
+    $PanelClass = "system-evidence-panel"
+
+    if (-not [string]::IsNullOrWhiteSpace($ExtraClass)) {
+        $PanelClass = "$PanelClass $ExtraClass"
+    }
+
+    $LinkHtml = ""
+    if (-not [string]::IsNullOrWhiteSpace($LinkHref) -and -not [string]::IsNullOrWhiteSpace($LinkText)) {
+        $SafeLinkHref = ConvertTo-HtmlSafeText $LinkHref
+        $SafeLinkText = ConvertTo-HtmlSafeText $LinkText
+        $LinkHtml = @"
+                    <div class="system-panel-footer">
+                        <a class="system-panel-link" href="$SafeLinkHref"><span class="system-panel-link-text">$SafeLinkText</span></a>
+                    </div>
+"@
+    }
+
+    return @"
+                <article class="$PanelClass">
+                    <div class="system-panel-header">
+                        <h3>$SafeTitle</h3>
+                        <p>$SafeDescription</p>
+                    </div>
+                    <div class="system-evidence-rows">
+$RowsHtml
+                    </div>
+$LinkHtml
+                </article>
 "@
 }
 
