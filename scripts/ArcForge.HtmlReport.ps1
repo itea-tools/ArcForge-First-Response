@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.41 extraction scope:
+# v0.42 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -23,6 +23,10 @@
 # - Get-ArcForgeSectionReadiness owns Readiness Overview card data prepared
 #   from already-captured report section lines.
 # - New-ArcForgeReadinessOverviewHtml owns the static Readiness Overview card
+#   markup used by the HTML report.
+# - New-ArcForgeSidebarStatusSegmentsHtml owns the small static sidebar status
+#   segment markup used by Report Navigation.
+# - New-ArcForgeReportNavigationHtml owns the static Report Navigation/sidebar
 #   markup used by the HTML report.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
 # - Future releases can move additional HTML helpers in small, tested slices.
@@ -287,3 +291,199 @@ $CardsHtml
         </section>
 "@
     }
+
+# -----------------------------------------------------------------------------
+# Report Navigation Helpers
+# -----------------------------------------------------------------------------
+# v0.42 extracted slice: Report Navigation helpers.
+# These helpers build static anchor navigation only. Every href target must
+# match an id in the final HTML template. No JavaScript is used.
+
+# Builds the three compact status segments shown beside readiness-domain
+# links in the HTML report sidebar.
+#
+# Why this exists:
+# - v0.19 is still a presentation-layer release.
+# - The sidebar segments give the report a quick dashboard-style glance
+#   without adding JavaScript, external dependencies, or a new GUI layer.
+# - This helper only converts an existing readiness status into small HTML
+#   spans. It does not inspect the computer or rerun any health checks.
+#
+# Input:
+# - A readiness status from Get-ArcForgeSectionReadiness:
+#   Critical, Attention, OK, or No Data.
+#
+# Output:
+# - A string containing three small <span> elements.
+#
+# Important:
+# - This is presentation-only.
+# - This does not change check logic, scoring, console output, or TXT output.
+# - The sidebar status should always match the Readiness Overview card that
+#   was built from the same readiness object.
+function New-ArcForgeSidebarStatusSegmentsHtml {
+    param (
+        [string]$Status
+    )
+
+    $SegmentClass = "sidebar-segment-empty"
+    $FilledSegments = 0
+
+    switch ($Status) {
+        "Critical" {
+            $SegmentClass = "sidebar-segment-critical"
+            $FilledSegments = 1
+        }
+        "Attention" {
+            $SegmentClass = "sidebar-segment-attention"
+            $FilledSegments = 2
+        }
+        "OK" {
+            $SegmentClass = "sidebar-segment-ok"
+            $FilledSegments = 3
+        }
+        default {
+            $SegmentClass = "sidebar-segment-empty"
+            $FilledSegments = 0
+        }
+    }
+
+    $Segments = @()
+
+    for ($Index = 1; $Index -le 3; $Index++) {
+        if ($Index -le $FilledSegments) {
+            $Segments += "<span class=""sidebar-segment $SegmentClass""></span>"
+        }
+        else {
+            $Segments += "<span class=""sidebar-segment sidebar-segment-empty""></span>"
+        }
+    }
+
+    return ($Segments -join "")
+}
+
+# Builds the static sidebar navigation used by the HTML report.
+#
+# Why this exists:
+# - v0.18 added quick-jump navigation for the major report sections.
+# - v0.19 reuses the existing Readiness Overview data to add small status
+#   segments beside the five primary readiness domains only.
+# - This helper keeps the navigation markup in one small place instead of
+#   scattering repeated <a> tags throughout the main HTML template.
+#
+# Input:
+# - ReadinessCards are the same objects used by New-ArcForgeReadinessOverviewHtml.
+# - The cards are calculated once, then reused by both the Readiness Overview
+#   and this sidebar navigation. That keeps both views in sync.
+#
+# Important:
+# - These are normal internal anchor links like href="#network".
+# - The status segments are visual/presentation-only.
+# - No JavaScript is used.
+# - No external dependencies are used.
+# - This does not change any check logic, console output, or TXT output.
+#
+# Troubleshooting rule:
+# - Every href="#section-name" in this helper must match an id="section-name"
+#   somewhere in the HTML template below.
+# - Sidebar status segments should only appear for System, Network,
+#   Software Readiness, Security, and Updates.
+# - If a segment does not match the Readiness Overview card, inspect the
+#   readiness card Name values first.
+#
+# Output:
+# - A string containing the complete sidebar <aside> block.
+function New-ArcForgeReportNavigationHtml {
+    param (
+        [object[]]$ReadinessCards
+    )
+
+    $ReadinessByName = @{}
+
+    foreach ($Card in $ReadinessCards) {
+        $ReadinessByName[$Card.Name] = $Card
+    }
+
+    $NavigationItems = @(
+        [pscustomobject]@{ Label = "Report Summary";       Anchor = "report-summary";       ShowStatus = $false }
+        [pscustomobject]@{ Label = "Incident Summary";     Anchor = "incident-summary";     ShowStatus = $false }
+        [pscustomobject]@{ Label = "Readiness Overview";   Anchor = "readiness-overview";   ShowStatus = $false }
+        [pscustomobject]@{ Label = "System";               Anchor = "system";               ShowStatus = $true  }
+        [pscustomobject]@{ Label = "Network";              Anchor = "network";              ShowStatus = $true  }
+        [pscustomobject]@{ Label = "Software Readiness";   Anchor = "software-readiness";   ShowStatus = $true  }
+        [pscustomobject]@{ Label = "Security";             Anchor = "security";             ShowStatus = $true  }
+        [pscustomobject]@{ Label = "Updates";              Anchor = "updates";              ShowStatus = $true  }
+        [pscustomobject]@{ Label = "Recommended Actions";  Anchor = "recommended-actions";  ShowStatus = $false }
+        [pscustomobject]@{ Label = "Raw Findings";         Anchor = "raw-findings";         ShowStatus = $false }
+    )
+
+    $NavigationLinks = @()
+
+    foreach ($Item in $NavigationItems) {
+        $SafeLabel = ConvertTo-HtmlSafeText $Item.Label
+        $SafeAnchor = ConvertTo-HtmlSafeText $Item.Anchor
+
+        # v0.24 Part 2:
+        # System is the first sidebar section to use native, no-JavaScript
+        # parent/child navigation. The parent row expands or collapses the
+        # System tree, while the child links jump to the System snapshot and
+        # detail anchors.
+        #
+        # Important:
+        # - This is HTML presentation only.
+        # - It does not rerun checks.
+        # - It does not change readiness scoring.
+        # - It does not change console output or TXT report output.
+        if ($Item.Label -eq "System" -and $Item.ShowStatus -and $ReadinessByName.ContainsKey($Item.Label)) {
+            $Card = $ReadinessByName[$Item.Label]
+            $SafeStatus = ConvertTo-HtmlSafeText $Card.Status
+            $SegmentsHtml = New-ArcForgeSidebarStatusSegmentsHtml -Status $Card.Status
+
+            $NavigationLinks += @"
+                <details class="sidebar-section-group" open>
+                    <summary class="sidebar-section-summary" title="$SafeLabel readiness: $SafeStatus" aria-label="$SafeLabel readiness: $SafeStatus">
+                        <span class="sidebar-section-summary-label">$SafeLabel</span>
+                        <span class="sidebar-status-segments" aria-hidden="true">$SegmentsHtml</span>
+                    </summary>
+                    <a class="sidebar-section-subitem" href="#$SafeAnchor">System Overview</a>
+                    <a class="sidebar-section-subitem" href="#system-endpoint-platform-details">Endpoint Platform Details</a>
+                    <a class="sidebar-section-subitem" href="#system-vital-signs-details">Vital Signs Details</a>
+                    <a class="sidebar-section-subitem" href="#system-storage-details">Storage Details</a>
+                    <a class="sidebar-section-subitem" href="#system-process-details">Process Health Details</a>
+                    <a class="sidebar-section-subitem" href="#system-core-services-details">Core Services Details</a>
+                </details>
+"@
+            continue
+        }
+
+        if ($Item.ShowStatus -and $ReadinessByName.ContainsKey($Item.Label)) {
+            $Card = $ReadinessByName[$Item.Label]
+            $SafeStatus = ConvertTo-HtmlSafeText $Card.Status
+            $SegmentsHtml = New-ArcForgeSidebarStatusSegmentsHtml -Status $Card.Status
+
+            $NavigationLinks += @"
+                <a class="sidebar-link sidebar-link-with-status" href="#$SafeAnchor" title="$SafeLabel readiness: $SafeStatus" aria-label="$SafeLabel readiness: $SafeStatus">
+                    <span class="sidebar-link-label">$SafeLabel</span>
+                    <span class="sidebar-status-segments" aria-hidden="true">$SegmentsHtml</span>
+                </a>
+"@
+        }
+        else {
+            $NavigationLinks += "                <a class=""sidebar-link"" href=""#$SafeAnchor"">$SafeLabel</a>"
+        }
+    }
+
+    $NavigationLinksHtml = $NavigationLinks -join "`n"
+
+    return @"
+        <aside class="report-sidebar">
+            <div class="sidebar-title">Report Navigation</div>
+            <div class="sidebar-subtitle">Jump to a major report section.</div>
+            <nav class="sidebar-nav" aria-label="ArcForge report sections">
+$NavigationLinksHtml
+            </nav>
+        </aside>
+"@
+}
+
+
