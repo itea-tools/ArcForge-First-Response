@@ -1,6 +1,19 @@
-﻿# ArcForge First Response
-# ArcForge First Response Report v0.46
+# ArcForge First Response
+# ArcForge First Response Report v0.47
 #
+# v0.47 HTML report System evidence-only row boundary notes:
+# - v0.47 moves the small static System evidence-only row helper into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it only depends on an
+#   explicit record, optional display label, and the existing HTML encoding
+#   helper.
+# - New-ArcForgeHtmlReport, New-ArcForgeSystemEvidenceHtml, and
+#   New-ArcForgeSystemDetailSectionHtml remain in the main script in this
+#   release.
+# - The full System evidence assembly, detail section builder, final HTML
+#   template, embedded CSS, report output paths, scoring, console output, TXT
+#   output, detection logic, System labels, anchors, card order, layout,
+#   default-open behavior, and collapsed detail behavior are intended to remain
+#   unchanged.
 # v0.46 HTML report System status row boundary notes:
 # - v0.46 moves the small static System status/label row helper into
 #   scripts/ArcForge.HtmlReport.ps1 after confirming it only depends on an
@@ -1277,45 +1290,10 @@ $GroupsHtml
         # the System overview can reuse the same static status-pill markup
         # without moving the larger evidence assembly out of this renderer yet.
 
-        # Renders identity/platform evidence without a health-style OK pill.
-        # Endpoint identity fields are evidence capture values, not pass/fail
-        # health checks, so this quieter row avoids implying a status verdict.
-        # Future module owner: scripts/ArcForge.Html.System.ps1
-        function New-ArcForgeSystemEvidenceOnlyRowHtml {
-            param (
-                [object]$Record,
-                [string]$DisplayLabel
-            )
-
-            $Label = if ([string]::IsNullOrWhiteSpace($DisplayLabel)) { $Record.Label } else { $DisplayLabel }
-            $Value = if ($Record -and -not [string]::IsNullOrWhiteSpace([string]$Record.Value)) {
-                [string]$Record.Value
-            }
-            else {
-                "Evidence not captured."
-            }
-
-            if ($Value -eq "Not captured in this report.") {
-                $Value = "Evidence not captured."
-            }
-
-            $ValueClass = if ($Value -eq "Evidence not captured.") {
-                "system-evidence-value system-evidence-value-missing"
-            }
-            else {
-                "system-evidence-value"
-            }
-
-            $SafeLabel = ConvertTo-HtmlSafeText (($Label -replace ':$', '').Trim())
-            $SafeValue = ConvertTo-HtmlSafeText $Value
-
-            return @"
-                    <div class="system-evidence-row system-evidence-row-informational">
-                        <span class="system-evidence-label">$SafeLabel</span>
-                        <span class="$ValueClass">$SafeValue</span>
-                    </div>
-"@
-        }
+        # New-ArcForgeSystemEvidenceOnlyRowHtml lives in scripts/ArcForge.HtmlReport.ps1.
+        # Keep identity/platform evidence-only row rendering centralized there
+        # so Endpoint Platform rows can avoid health-style status pills without
+        # moving the larger evidence assembly out of this renderer yet.
 
         # Builds a detail anchor section from existing report lines only.
         # These sections are intentionally simple and static: the snapshot cards

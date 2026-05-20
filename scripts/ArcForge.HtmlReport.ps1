@@ -1,4 +1,4 @@
-﻿# ArcForge First Response - HTML Report Helpers
+# ArcForge First Response - HTML Report Helpers
 #
 # This module supports ArcForge's static HTML report.
 #
@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.46 extraction scope:
+# v0.47 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -37,6 +37,8 @@
 # - New-ArcForgeSystemStatusLabelRowHtml owns static compact System
 #   status/label row markup built from an explicit record and optional display
 #   label.
+# - New-ArcForgeSystemEvidenceOnlyRowHtml owns static System evidence-only row
+#   markup built from an explicit record and optional display label.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
 # - Future releases can move additional HTML helpers in small, tested slices.
 
@@ -366,6 +368,44 @@ function New-ArcForgeSystemStatusLabelRowHtml {
 "@
 }
 
+function New-ArcForgeSystemEvidenceOnlyRowHtml {
+    param (
+        [object]$Record,
+        [string]$DisplayLabel
+    )
+
+    # Render identity/platform evidence without a health-style OK/WARN/FAIL
+    # pill. Endpoint identity fields are evidence capture values, not pass/fail
+    # health checks, so this quieter row avoids implying a status verdict.
+    $Label = if ([string]::IsNullOrWhiteSpace($DisplayLabel)) { $Record.Label } else { $DisplayLabel }
+    $Value = if ($Record -and -not [string]::IsNullOrWhiteSpace([string]$Record.Value)) {
+        [string]$Record.Value
+    }
+    else {
+        "Evidence not captured."
+    }
+
+    if ($Value -eq "Not captured in this report.") {
+        $Value = "Evidence not captured."
+    }
+
+    $ValueClass = if ($Value -eq "Evidence not captured.") {
+        "system-evidence-value system-evidence-value-missing"
+    }
+    else {
+        "system-evidence-value"
+    }
+
+    $SafeLabel = ConvertTo-HtmlSafeText (($Label -replace ':$', '').Trim())
+    $SafeValue = ConvertTo-HtmlSafeText $Value
+
+    return @"
+                    <div class="system-evidence-row system-evidence-row-informational">
+                        <span class="system-evidence-label">$SafeLabel</span>
+                        <span class="$ValueClass">$SafeValue</span>
+                    </div>
+"@
+}
 
 # Wraps a System body block in a native collapsible card.
 # This keeps the System section segmented without adding JavaScript or
