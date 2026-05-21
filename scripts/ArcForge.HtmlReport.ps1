@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.47 extraction scope:
+# v0.49 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -37,6 +37,8 @@
 # - New-ArcForgeSystemStatusLabelRowHtml owns static compact System
 #   status/label row markup built from an explicit record and optional display
 #   label.
+# - ConvertTo-ArcForgeSystemEvidenceRecord owns static System report-line parsing
+#   for existing OK/WARN/FAIL evidence rows.
 # - New-ArcForgeSystemEvidenceOnlyRowHtml owns static System evidence-only row
 #   markup built from an explicit record and optional display label.
 # - New-ArcForgeHtmlReport remains in Invoke-ArcForgeFirstResponse.ps1 for now.
@@ -308,6 +310,35 @@ $CardsHtml
 # -----------------------------------------------------------------------------
 # These helpers do not collect evidence, change scoring, or alter console/TXT
 # output. They only build static System HTML from prepared values.
+
+# Converts one raw finding line like:
+# [OK] OS Name: Microsoft Windows 10...
+# into a small object the HTML renderer can place in a key/value row.
+#
+# v0.49: Moved from New-ArcForgeSystemEvidenceHtml after confirming it only
+# depends on one explicit line, static report-line parsing rules, string
+# trimming, and basic object creation.
+# Module owner: scripts/ArcForge.HtmlReport.ps1
+function ConvertTo-ArcForgeSystemEvidenceRecord {
+    param (
+        [string]$Line
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Line)) {
+        return $null
+    }
+
+    $Pattern = '^\[(OK|WARN|FAIL)\]\s+(.+?:)\s*(.*)$'
+    if ($Line -notmatch $Pattern) {
+        return $null
+    }
+
+    return [pscustomobject]@{
+        Status = $Matches[1]
+        Label  = $Matches[2].Trim()
+        Value  = $Matches[3].Trim()
+    }
+}
 
 # Renders a single compact status-first key/value row.
 # The status class only affects the HTML report and does not change

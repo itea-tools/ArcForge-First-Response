@@ -1,5 +1,16 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.48
+# ArcForge First Response Report v0.49
+#
+# v0.49 System evidence parser boundary notes:
+# - v0.49 moves only ConvertTo-ArcForgeSystemEvidenceRecord into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it depends only on its
+#   input line, static report-line parsing rules, string trimming, and basic
+#   object creation.
+# - New-ArcForgeHtmlReport, New-ArcForgeSystemEvidenceHtml,
+#   New-ArcForgeSystemDetailSectionHtml, the final HTML template, embedded CSS,
+#   report output paths, scoring, console output, TXT output, detection logic,
+#   System labels, anchors, card order, layout, default-open behavior, and
+#   collapsed detail behavior are intended to remain unchanged.
 #
 # v0.48 HTML report System detail section boundary notes:
 # - v0.48 inspects New-ArcForgeSystemDetailSectionHtml as the next possible
@@ -1242,30 +1253,10 @@ $GroupsHtml
             [object[]]$ServiceLines
         )
 
-        # Converts one raw finding line like:
-        # [OK] OS Name: Microsoft Windows 10...
-        # into a small object the HTML renderer can place in a key/value row.
-        # Future module owner: scripts/ArcForge.Html.System.ps1
-        function ConvertTo-ArcForgeSystemEvidenceRecord {
-            param (
-                [string]$Line
-            )
-
-            if ([string]::IsNullOrWhiteSpace($Line)) {
-                return $null
-            }
-
-            $Pattern = '^\[(OK|WARN|FAIL)\]\s+(.+?:)\s*(.*)$'
-            if ($Line -notmatch $Pattern) {
-                return $null
-            }
-
-            return [pscustomobject]@{
-                Status = $Matches[1]
-                Label  = $Matches[2].Trim()
-                Value  = $Matches[3].Trim()
-            }
-        }
+        # ConvertTo-ArcForgeSystemEvidenceRecord lives in scripts/ArcForge.HtmlReport.ps1.
+        # Keep the report-line parser centralized there so System overview lookups
+        # and System detail rows share the same static evidence parsing boundary
+        # without moving the larger System evidence assembly out of this renderer yet.
 
         # Looks up the first finding with a matching label in an existing section.
         # Missing rows are rendered as muted placeholders so the HTML remains
@@ -1313,14 +1304,12 @@ $GroupsHtml
         # These sections are intentionally simple and static: the snapshot cards
         # link here when a tech wants more evidence without requiring JavaScript.
         #
-        # v0.48 boundary note:
+        # v0.49 boundary note:
         # Keep this helper inside New-ArcForgeSystemEvidenceHtml for now. It is
-        # mostly presentation markup, but it still parses report lines through
-        # the renderer-local ConvertTo-ArcForgeSystemEvidenceRecord helper before
-        # delegating row markup to ArcForge.HtmlReport.ps1. Moving it now would
-        # create a hidden dependency on renderer-local parsing logic. A future
-        # release should move the parser boundary first or pass prebuilt row
-        # HTML explicitly.
+        # mostly presentation markup and still belongs with the larger System
+        # evidence assembly. The line parser it calls now lives in
+        # ArcForge.HtmlReport.ps1, but this release intentionally avoids moving
+        # the detail-section markup or changing its row behavior.
         # Future module owner: scripts/ArcForge.Html.System.ps1
         function New-ArcForgeSystemDetailSectionHtml {
             param (
