@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.49 extraction scope:
+# v0.50 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -30,6 +30,8 @@
 #   markup used by the HTML report.
 # - New-ArcForgeSystemCollapsibleCardHtml owns shared static <details> card
 #   markup used by the System Overview and System detail sections.
+# - New-ArcForgeSystemDetailSectionHtml owns static System detail section
+#   markup built from explicit parameters and module-owned System helpers.
 # - New-ArcForgeSystemPanelHtml owns static System snapshot panel markup
 #   built from already-prepared row HTML and explicit link parameters.
 # - New-ArcForgeSystemEvidenceRowHtml owns static System evidence row markup
@@ -484,6 +486,50 @@ $BodyHtml
             </div>
         </details>
 "@
+}
+
+# Builds a detail anchor section from existing report lines only.
+# These sections are intentionally simple and static: the snapshot cards link here
+# when a tech wants more evidence without requiring JavaScript.
+#
+# v0.50: Moved from New-ArcForgeSystemEvidenceHtml after confirming it only
+# depends on explicit parameters, Get-ArcForgeFlattenedLines,
+# ConvertTo-ArcForgeSystemEvidenceRecord, New-ArcForgeSystemEvidenceRowHtml,
+# New-ArcForgeSystemCollapsibleCardHtml, static HTML assembly, and basic string
+# handling.
+# Module owner: scripts/ArcForge.HtmlReport.ps1
+function New-ArcForgeSystemDetailSectionHtml {
+    param (
+        [string]$Id,
+        [string]$Title,
+        [string]$Description,
+        [object[]]$Lines
+    )
+
+    $DetailRows = @()
+
+    foreach ($Line in (Get-ArcForgeFlattenedLines -Lines $Lines)) {
+        $Record = ConvertTo-ArcForgeSystemEvidenceRecord -Line $Line
+        if ($null -ne $Record) {
+            $DetailRows += New-ArcForgeSystemEvidenceRowHtml -Record $Record
+        }
+    }
+
+    if (-not $DetailRows -or $DetailRows.Count -eq 0) {
+        $DetailRows += @"
+                    <div class="system-detail-empty muted">No detail lines captured for this subsection.</div>
+"@
+    }
+
+    $DetailRowsHtml = $DetailRows -join "`n"
+
+    $DetailBodyHtml = @"
+                        <div class="system-evidence-rows">
+$DetailRowsHtml
+                        </div>
+"@
+
+    return New-ArcForgeSystemCollapsibleCardHtml -Id $Id -Title $Title -Description $Description -BodyHtml $DetailBodyHtml -ExtraClass "system-detail-collapsible-card"
 }
 
 # Builds a System snapshot panel from already-prepared row HTML.

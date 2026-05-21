@@ -1,5 +1,16 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.49
+# ArcForge First Response Report v0.50
+#
+# v0.50 System detail renderer boundary notes:
+# - v0.50 moves only New-ArcForgeSystemDetailSectionHtml into
+#   scripts/ArcForge.HtmlReport.ps1 after confirming it depends only on
+#   explicit parameters, module-owned System parsing/row/card helpers, static
+#   HTML assembly, and basic line handling.
+# - New-ArcForgeHtmlReport, New-ArcForgeSystemEvidenceHtml, the final HTML
+#   template, embedded CSS, report output paths, scoring, console output, TXT
+#   output, detection logic, System labels, anchors, card order, layout,
+#   default-open behavior, and collapsed detail behavior are intended to remain
+#   unchanged.
 #
 # v0.49 System evidence parser boundary notes:
 # - v0.49 moves only ConvertTo-ArcForgeSystemEvidenceRecord into
@@ -1300,50 +1311,10 @@ $GroupsHtml
         # so Endpoint Platform rows can avoid health-style status pills without
         # moving the larger evidence assembly out of this renderer yet.
 
-        # Builds a detail anchor section from existing report lines only.
-        # These sections are intentionally simple and static: the snapshot cards
-        # link here when a tech wants more evidence without requiring JavaScript.
-        #
-        # v0.49 boundary note:
-        # Keep this helper inside New-ArcForgeSystemEvidenceHtml for now. It is
-        # mostly presentation markup and still belongs with the larger System
-        # evidence assembly. The line parser it calls now lives in
-        # ArcForge.HtmlReport.ps1, but this release intentionally avoids moving
-        # the detail-section markup or changing its row behavior.
-        # Future module owner: scripts/ArcForge.Html.System.ps1
-        function New-ArcForgeSystemDetailSectionHtml {
-            param (
-                [string]$Id,
-                [string]$Title,
-                [string]$Description,
-                [object[]]$Lines
-            )
-
-            $DetailRows = @()
-
-            foreach ($Line in (Get-ArcForgeFlattenedLines -Lines $Lines)) {
-                $Record = ConvertTo-ArcForgeSystemEvidenceRecord -Line $Line
-                if ($null -ne $Record) {
-                    $DetailRows += New-ArcForgeSystemEvidenceRowHtml -Record $Record
-                }
-            }
-
-            if (-not $DetailRows -or $DetailRows.Count -eq 0) {
-                $DetailRows += @"
-                    <div class="system-detail-empty muted">No detail lines captured for this subsection.</div>
-"@
-            }
-
-            $DetailRowsHtml = $DetailRows -join "`n"
-
-            $DetailBodyHtml = @"
-                        <div class="system-evidence-rows">
-$DetailRowsHtml
-                        </div>
-"@
-
-            return New-ArcForgeSystemCollapsibleCardHtml -Id $Id -Title $Title -Description $Description -BodyHtml $DetailBodyHtml -ExtraClass "system-detail-collapsible-card"
-        }
+        # New-ArcForgeSystemDetailSectionHtml lives in scripts/ArcForge.HtmlReport.ps1.
+        # v0.50 keeps only the larger System evidence assembly here; the detail
+        # renderer now uses module-owned parsing, row, and collapsible-card helpers
+        # while preserving the same static HTML behavior and collapsed detail state.
 
         $ComputerValue = if ([string]::IsNullOrWhiteSpace($ComputerName)) { "Evidence not captured." } else { $ComputerName }
         $CurrentUserValue = if ([string]::IsNullOrWhiteSpace($CurrentUser)) { "Evidence not captured." } else { $CurrentUser }
