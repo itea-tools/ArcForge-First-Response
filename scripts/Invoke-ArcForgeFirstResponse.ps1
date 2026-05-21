@@ -1,5 +1,19 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.47
+# ArcForge First Response Report v0.48
+#
+# v0.48 HTML report System detail section boundary notes:
+# - v0.48 inspects New-ArcForgeSystemDetailSectionHtml as the next possible
+#   System-specific HTML helper boundary.
+# - The helper remains in New-ArcForgeSystemEvidenceHtml for now because it
+#   still depends on the renderer-local ConvertTo-ArcForgeSystemEvidenceRecord
+#   parser used to turn existing report lines into System evidence rows.
+# - This keeps the detail-section boundary explicit without creating a hidden
+#   module dependency on renderer-local parsing logic.
+# - New-ArcForgeHtmlReport, New-ArcForgeSystemEvidenceHtml, the final HTML
+#   template, embedded CSS, report output paths, scoring, console output, TXT
+#   output, detection logic, System labels, anchors, card order, layout,
+#   default-open behavior, and collapsed detail behavior are intended to remain
+#   unchanged.
 #
 # v0.47 HTML report System evidence-only row boundary notes:
 # - v0.47 moves the small static System evidence-only row helper into
@@ -1298,6 +1312,15 @@ $GroupsHtml
         # Builds a detail anchor section from existing report lines only.
         # These sections are intentionally simple and static: the snapshot cards
         # link here when a tech wants more evidence without requiring JavaScript.
+        #
+        # v0.48 boundary note:
+        # Keep this helper inside New-ArcForgeSystemEvidenceHtml for now. It is
+        # mostly presentation markup, but it still parses report lines through
+        # the renderer-local ConvertTo-ArcForgeSystemEvidenceRecord helper before
+        # delegating row markup to ArcForge.HtmlReport.ps1. Moving it now would
+        # create a hidden dependency on renderer-local parsing logic. A future
+        # release should move the parser boundary first or pass prebuilt row
+        # HTML explicitly.
         # Future module owner: scripts/ArcForge.Html.System.ps1
         function New-ArcForgeSystemDetailSectionHtml {
             param (
