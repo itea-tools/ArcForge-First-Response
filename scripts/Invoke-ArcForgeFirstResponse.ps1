@@ -1,5 +1,12 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.50
+# ArcForge First Response Report v0.51
+#
+# v0.51 System overview assembly boundary notes:
+# - v0.51 moves only New-ArcForgeSystemOverviewHtml into
+#   scripts/ArcForge.HtmlReport.ps1.
+# - The helper wraps already-prepared System snapshot panel HTML in the existing
+#   default-open System Overview card without changing panel content, anchors,
+#   CSS, report template ownership, scoring, console output, or TXT output.
 #
 # v0.50 System detail renderer boundary notes:
 # - v0.50 moves only New-ArcForgeSystemDetailSectionHtml into
@@ -1316,6 +1323,11 @@ $GroupsHtml
         # renderer now uses module-owned parsing, row, and collapsible-card helpers
         # while preserving the same static HTML behavior and collapsed detail state.
 
+        # New-ArcForgeSystemOverviewHtml lives in scripts/ArcForge.HtmlReport.ps1.
+        # v0.51 moves only the narrow System Overview wrapper assembly there.
+        # Keep panel data preparation and the larger System evidence section
+        # orchestration here until a later release explicitly moves another slice.
+
         $ComputerValue = if ([string]::IsNullOrWhiteSpace($ComputerName)) { "Evidence not captured." } else { $ComputerName }
         $CurrentUserValue = if ([string]::IsNullOrWhiteSpace($CurrentUser)) { "Evidence not captured." } else { $CurrentUser }
         $ComputerRecord = [pscustomobject]@{ Status = "INFO"; Label = "Computer Name:"; Value = $ComputerValue }
@@ -1573,13 +1585,7 @@ $($ServiceCells -join "`n")
         $ProcessDetailsHtml = New-ArcForgeSystemDetailSectionHtml -Id "system-process-details" -Title "Process Health Details" -Description "Process evidence captured by the current ArcForge process checks, including hung application status and the top memory consumers." -Lines $ProcessLines
         $ServiceDetailsHtml = New-ArcForgeSystemDetailSectionHtml -Id "system-core-services-details" -Title "Core Services Details" -Description "Core Windows service evidence captured by the current ArcForge service checks. This confirms observed service state only; it does not compare against a service baseline or drift policy." -Lines $ServiceLines
 
-        $SystemOverviewBodyHtml = @"
-                        <div class="system-evidence-grid">
-$Panels
-                        </div>
-"@
-
-        $SystemOverviewHtml = New-ArcForgeSystemCollapsibleCardHtml -Title "System Overview" -Description "Snapshot cards for endpoint platform, vital signs, storage, process health, and core service evidence." -BodyHtml $SystemOverviewBodyHtml -ExtraClass "system-overview-card" -OpenByDefault $true
+        $SystemOverviewHtml = New-ArcForgeSystemOverviewHtml -PanelsHtml $Panels
 
         return @"
         <section id="system" class="section system-evidence">

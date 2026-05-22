@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.50 extraction scope:
+# v0.51 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -32,6 +32,8 @@
 #   markup used by the System Overview and System detail sections.
 # - New-ArcForgeSystemDetailSectionHtml owns static System detail section
 #   markup built from explicit parameters and module-owned System helpers.
+# - New-ArcForgeSystemOverviewHtml owns the static default-open System Overview
+#   wrapper built from already-prepared System snapshot panel HTML.
 # - New-ArcForgeSystemPanelHtml owns static System snapshot panel markup
 #   built from already-prepared row HTML and explicit link parameters.
 # - New-ArcForgeSystemEvidenceRowHtml owns static System evidence row markup
@@ -580,6 +582,27 @@ $RowsHtml
 $LinkHtml
                 </article>
 "@
+}
+
+# Builds the default-open System Overview card from already-prepared snapshot
+# panel HTML. This is presentation assembly only: callers still own evidence
+# collection, record selection, panel ordering, section orchestration, and final
+# report template placement.
+#
+# v0.51: Moved from the main renderer after confirming it only depends on one
+# explicit panel HTML string and New-ArcForgeSystemCollapsibleCardHtml.
+function New-ArcForgeSystemOverviewHtml {
+    param (
+        [string]$PanelsHtml
+    )
+
+    $SystemOverviewBodyHtml = @"
+                        <div class="system-evidence-grid">
+$PanelsHtml
+                        </div>
+"@
+
+    return New-ArcForgeSystemCollapsibleCardHtml -Title "System Overview" -Description "Snapshot cards for endpoint platform, vital signs, storage, process health, and core service evidence." -BodyHtml $SystemOverviewBodyHtml -ExtraClass "system-overview-card" -OpenByDefault $true
 }
 
 # -----------------------------------------------------------------------------
