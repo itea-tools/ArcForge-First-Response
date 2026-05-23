@@ -1,8 +1,10 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.51
+# ArcForge First Response Report v0.52
 #
-# v0.51 System overview assembly boundary notes:
-# - v0.51 moves only New-ArcForgeSystemOverviewHtml into
+# v0.52 System panel group assembly boundary notes:
+# - v0.52 moves only the narrow System snapshot panel group assembly into
+#   scripts/ArcForge.HtmlReport.ps1.
+# - v0.51 moved only New-ArcForgeSystemOverviewHtml into
 #   scripts/ArcForge.HtmlReport.ps1.
 # - The helper wraps already-prepared System snapshot panel HTML in the existing
 #   default-open System Overview card without changing panel content, anchors,
@@ -1325,6 +1327,8 @@ $GroupsHtml
 
         # New-ArcForgeSystemOverviewHtml lives in scripts/ArcForge.HtmlReport.ps1.
         # v0.51 moves only the narrow System Overview wrapper assembly there.
+        # New-ArcForgeSystemPanelGroupHtml lives in scripts/ArcForge.HtmlReport.ps1.
+        # v0.52 moves only the narrow System snapshot panel group assembly there.
         # Keep panel data preparation and the larger System evidence section
         # orchestration here until a later release explicitly moves another slice.
 
@@ -1562,13 +1566,15 @@ $($ServiceCells -join "`n")
                     </div>
 "@
 
-        $Panels = @(
-            New-ArcForgeSystemPanelHtml -Title "Endpoint Platform" -Description "Local identity and operating system evidence." -RowsHtml $EndpointRows -ExtraClass "system-panel-wide" -LinkHref "#system-endpoint-platform-details" -LinkText "Endpoint Platform Details"
-            New-ArcForgeSystemPanelHtml -Title "Vital Signs" -Description "Boot and uptime indicators for quick stability review." -RowsHtml $VitalRows -LinkHref "#system-vital-signs-details" -LinkText "Vital Signs Details"
-            New-ArcForgeSystemPanelHtml -Title "Primary Drive Storage" -Description "Primary system drive capacity." -RowsHtml $StorageRows -LinkHref "#system-storage-details" -LinkText "Storage Details"
-            New-ArcForgeSystemPanelHtml -Title "Process Health" -Description "Snapshot of hung applications and the top five memory consumers." -RowsHtml $ProcessRows -ExtraClass "system-panel-wide" -LinkHref "#system-process-details" -LinkText "Process Health Details"
-            New-ArcForgeSystemPanelHtml -Title "Core Services Matrix" -Description "Critical Windows service pipes that affect triage trust." -RowsHtml $ServiceRows -ExtraClass "system-panel-wide" -LinkHref "#system-core-services-details" -LinkText "Core Services Details"
-        ) -join "`n"
+        $PanelDefinitions = @(
+            [pscustomobject]@{ Title = "Endpoint Platform"; Description = "Local identity and operating system evidence."; RowsHtml = $EndpointRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-endpoint-platform-details"; LinkText = "Endpoint Platform Details" }
+            [pscustomobject]@{ Title = "Vital Signs"; Description = "Boot and uptime indicators for quick stability review."; RowsHtml = $VitalRows; ExtraClass = ""; LinkHref = "#system-vital-signs-details"; LinkText = "Vital Signs Details" }
+            [pscustomobject]@{ Title = "Primary Drive Storage"; Description = "Primary system drive capacity."; RowsHtml = $StorageRows; ExtraClass = ""; LinkHref = "#system-storage-details"; LinkText = "Storage Details" }
+            [pscustomobject]@{ Title = "Process Health"; Description = "Snapshot of hung applications and the top five memory consumers."; RowsHtml = $ProcessRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-process-details"; LinkText = "Process Health Details" }
+            [pscustomobject]@{ Title = "Core Services Matrix"; Description = "Critical Windows service pipes that affect triage trust."; RowsHtml = $ServiceRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-core-services-details"; LinkText = "Core Services Details" }
+        )
+
+        $Panels = New-ArcForgeSystemPanelGroupHtml -Panels $PanelDefinitions
 
         # v0.24 Part 3 anchor alignment.
         # Every System child link in the Report Navigation sidebar must point to

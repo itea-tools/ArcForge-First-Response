@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.51 extraction scope:
+# v0.52 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -36,6 +36,8 @@
 #   wrapper built from already-prepared System snapshot panel HTML.
 # - New-ArcForgeSystemPanelHtml owns static System snapshot panel markup
 #   built from already-prepared row HTML and explicit link parameters.
+# - New-ArcForgeSystemPanelGroupHtml owns static System snapshot panel
+#   group assembly from caller-prepared panel definitions.
 # - New-ArcForgeSystemEvidenceRowHtml owns static System evidence row markup
 #   built from an explicit record and optional display label.
 # - New-ArcForgeSystemStatusLabelRowHtml owns static compact System
@@ -582,6 +584,37 @@ $RowsHtml
 $LinkHtml
                 </article>
 "@
+}
+
+# Builds the System snapshot panel group from caller-prepared panel
+# definitions. The caller still owns evidence selection, row/body preparation,
+# panel ordering, section orchestration, and final System layout.
+#
+# v0.52: Moved the narrow repeated snapshot panel assembly loop from the main
+# renderer after confirming it only depends on explicit panel definition fields
+# and New-ArcForgeSystemPanelHtml.
+function New-ArcForgeSystemPanelGroupHtml {
+    param (
+        [object[]]$Panels
+    )
+
+    $PanelHtml = @(
+        foreach ($Panel in $Panels) {
+            if ($null -eq $Panel) {
+                continue
+            }
+
+            New-ArcForgeSystemPanelHtml `
+                -Title $Panel.Title `
+                -Description $Panel.Description `
+                -RowsHtml $Panel.RowsHtml `
+                -ExtraClass $Panel.ExtraClass `
+                -LinkHref $Panel.LinkHref `
+                -LinkText $Panel.LinkText
+        }
+    )
+
+    return ($PanelHtml -join "`n")
 }
 
 # Builds the default-open System Overview card from already-prepared snapshot
