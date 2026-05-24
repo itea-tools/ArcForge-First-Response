@@ -1,5 +1,14 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.52
+# ArcForge First Response Report v0.53
+#
+# v0.53 System detail section group assembly boundary notes:
+# - v0.53 moves only the narrow System detail section group assembly into
+#   scripts/ArcForge.HtmlReport.ps1.
+# - v0.52 moved only New-ArcForgeSystemPanelGroupHtml into
+#   scripts/ArcForge.HtmlReport.ps1.
+# - The helper assembles caller-prepared System detail section definitions
+#   without changing detail anchors, titles, descriptions, order, CSS, report
+#   template ownership, scoring, console output, or TXT output.
 #
 # v0.52 System panel group assembly boundary notes:
 # - v0.52 moves only the narrow System snapshot panel group assembly into
@@ -1329,8 +1338,12 @@ $GroupsHtml
         # v0.51 moves only the narrow System Overview wrapper assembly there.
         # New-ArcForgeSystemPanelGroupHtml lives in scripts/ArcForge.HtmlReport.ps1.
         # v0.52 moves only the narrow System snapshot panel group assembly there.
-        # Keep panel data preparation and the larger System evidence section
-        # orchestration here until a later release explicitly moves another slice.
+        # New-ArcForgeSystemDetailSectionGroupHtml lives in scripts/ArcForge.HtmlReport.ps1.
+        # v0.53 moves only the narrow repeated System detail section group
+        # assembly there. Keep evidence selection, detail body preparation,
+        # anchors, titles, labels, ordering, and the larger System evidence
+        # section orchestration here until a later release explicitly moves
+        # another slice.
 
         $ComputerValue = if ([string]::IsNullOrWhiteSpace($ComputerName)) { "Evidence not captured." } else { $ComputerName }
         $CurrentUserValue = if ([string]::IsNullOrWhiteSpace($CurrentUser)) { "Evidence not captured." } else { $CurrentUser }
@@ -1581,16 +1594,44 @@ $($ServiceCells -join "`n")
         # a real detail section in the static HTML body. If a sidebar link points
         # to a missing id, browsers can handle focus/hash navigation differently,
         # which makes the gray click/focus box feel inconsistent during testing.
-        $EndpointDetailsHtml = New-ArcForgeSystemDetailSectionHtml -Id "system-endpoint-platform-details" -Title "Endpoint Platform Details" -Description "Endpoint identity and operating system evidence captured from the current System check plus the report header context." -Lines @(
-            "[INFO] Computer Name: $ComputerValue"
-            "[INFO] Current User: $CurrentUserValue"
-            $SystemLines
+        $DetailSectionDefinitions = @(
+            [pscustomobject]@{
+                Id          = "system-endpoint-platform-details"
+                Title       = "Endpoint Platform Details"
+                Description = "Endpoint identity and operating system evidence captured from the current System check plus the report header context."
+                Lines       = @(
+                    "[INFO] Computer Name: $ComputerValue"
+                    "[INFO] Current User: $CurrentUserValue"
+                    $SystemLines
+                )
+            }
+            [pscustomobject]@{
+                Id          = "system-vital-signs-details"
+                Title       = "Vital Signs Details"
+                Description = "Boot and uptime evidence captured by the current ArcForge uptime check. This section reports observed availability signals only; it does not diagnose the cause of long uptime or recent restarts."
+                Lines       = $UptimeLines
+            }
+            [pscustomobject]@{
+                Id          = "system-storage-details"
+                Title       = "Storage Details"
+                Description = "Storage evidence captured by the current ArcForge storage check. Future multi-drive support can expand here without crowding the System snapshot."
+                Lines       = $StorageLines
+            }
+            [pscustomobject]@{
+                Id          = "system-process-details"
+                Title       = "Process Health Details"
+                Description = "Process evidence captured by the current ArcForge process checks, including hung application status and the top memory consumers."
+                Lines       = $ProcessLines
+            }
+            [pscustomobject]@{
+                Id          = "system-core-services-details"
+                Title       = "Core Services Details"
+                Description = "Core Windows service evidence captured by the current ArcForge service checks. This confirms observed service state only; it does not compare against a service baseline or drift policy."
+                Lines       = $ServiceLines
+            }
         )
-        $VitalDetailsHtml = New-ArcForgeSystemDetailSectionHtml -Id "system-vital-signs-details" -Title "Vital Signs Details" -Description "Boot and uptime evidence captured by the current ArcForge uptime check. This section reports observed availability signals only; it does not diagnose the cause of long uptime or recent restarts." -Lines $UptimeLines
-        $StorageDetailsHtml = New-ArcForgeSystemDetailSectionHtml -Id "system-storage-details" -Title "Storage Details" -Description "Storage evidence captured by the current ArcForge storage check. Future multi-drive support can expand here without crowding the System snapshot." -Lines $StorageLines
-        $ProcessDetailsHtml = New-ArcForgeSystemDetailSectionHtml -Id "system-process-details" -Title "Process Health Details" -Description "Process evidence captured by the current ArcForge process checks, including hung application status and the top memory consumers." -Lines $ProcessLines
-        $ServiceDetailsHtml = New-ArcForgeSystemDetailSectionHtml -Id "system-core-services-details" -Title "Core Services Details" -Description "Core Windows service evidence captured by the current ArcForge service checks. This confirms observed service state only; it does not compare against a service baseline or drift policy." -Lines $ServiceLines
 
+        $SystemDetailsHtml = New-ArcForgeSystemDetailSectionGroupHtml -DetailSections $DetailSectionDefinitions
         $SystemOverviewHtml = New-ArcForgeSystemOverviewHtml -PanelsHtml $Panels
 
         return @"
@@ -1601,11 +1642,7 @@ $($ServiceCells -join "`n")
             </div>
             <div class="system-collapsible-stack" aria-label="System evidence sections">
 $SystemOverviewHtml
-$EndpointDetailsHtml
-$VitalDetailsHtml
-$StorageDetailsHtml
-$ProcessDetailsHtml
-$ServiceDetailsHtml
+$SystemDetailsHtml
             </div>
         </section>
 "@

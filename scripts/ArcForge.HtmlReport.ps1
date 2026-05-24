@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.52 extraction scope:
+# v0.53 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -32,6 +32,8 @@
 #   markup used by the System Overview and System detail sections.
 # - New-ArcForgeSystemDetailSectionHtml owns static System detail section
 #   markup built from explicit parameters and module-owned System helpers.
+# - New-ArcForgeSystemDetailSectionGroupHtml owns static System detail section
+#   group assembly from caller-prepared detail section definitions.
 # - New-ArcForgeSystemOverviewHtml owns the static default-open System Overview
 #   wrapper built from already-prepared System snapshot panel HTML.
 # - New-ArcForgeSystemPanelHtml owns static System snapshot panel markup
@@ -534,6 +536,36 @@ $DetailRowsHtml
 "@
 
     return New-ArcForgeSystemCollapsibleCardHtml -Id $Id -Title $Title -Description $Description -BodyHtml $DetailBodyHtml -ExtraClass "system-detail-collapsible-card"
+}
+
+# Builds the System detail section group from caller-prepared detail section
+# definitions. The caller still owns evidence selection, detail body
+# preparation, anchors, titles, labels, ordering, section orchestration, and
+# final System layout.
+#
+# v0.53: Moved the narrow repeated detail section assembly block from the main
+# renderer after confirming it only depends on explicit detail section
+# definition fields and New-ArcForgeSystemDetailSectionHtml.
+function New-ArcForgeSystemDetailSectionGroupHtml {
+    param (
+        [object[]]$DetailSections
+    )
+
+    $DetailSectionHtml = @(
+        foreach ($DetailSection in $DetailSections) {
+            if ($null -eq $DetailSection) {
+                continue
+            }
+
+            New-ArcForgeSystemDetailSectionHtml `
+                -Id $DetailSection.Id `
+                -Title $DetailSection.Title `
+                -Description $DetailSection.Description `
+                -Lines $DetailSection.Lines
+        }
+    )
+
+    return ($DetailSectionHtml -join "`n")
 }
 
 # Builds a System snapshot panel from already-prepared row HTML.
