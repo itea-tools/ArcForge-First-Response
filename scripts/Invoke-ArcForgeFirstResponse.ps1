@@ -1,5 +1,15 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.53
+# ArcForge First Response Report v0.54
+#
+# v0.54 System detail section definition boundary notes:
+# - v0.54 moves only the narrow System detail section definition object
+#   construction into scripts/ArcForge.HtmlReport.ps1.
+# - v0.53 moved only New-ArcForgeSystemDetailSectionGroupHtml into
+#   scripts/ArcForge.HtmlReport.ps1.
+# - The helper returns caller-ready detail section definition objects from
+#   explicit IDs, titles, descriptions, and line collections without changing
+#   detail anchors, titles, descriptions, order, CSS, report template ownership,
+#   scoring, console output, or TXT output.
 #
 # v0.53 System detail section group assembly boundary notes:
 # - v0.53 moves only the narrow System detail section group assembly into
@@ -1338,6 +1348,11 @@ $GroupsHtml
         # v0.51 moves only the narrow System Overview wrapper assembly there.
         # New-ArcForgeSystemPanelGroupHtml lives in scripts/ArcForge.HtmlReport.ps1.
         # v0.52 moves only the narrow System snapshot panel group assembly there.
+        # New-ArcForgeSystemDetailSectionDefinition lives in scripts/ArcForge.HtmlReport.ps1.
+        # v0.54 moves only the narrow System detail section definition object
+        # construction there while keeping evidence selection and line values
+        # explicit at this call site.
+
         # New-ArcForgeSystemDetailSectionGroupHtml lives in scripts/ArcForge.HtmlReport.ps1.
         # v0.53 moves only the narrow repeated System detail section group
         # assembly there. Keep evidence selection, detail body preparation,
@@ -1595,40 +1610,39 @@ $($ServiceCells -join "`n")
         # to a missing id, browsers can handle focus/hash navigation differently,
         # which makes the gray click/focus box feel inconsistent during testing.
         $DetailSectionDefinitions = @(
-            [pscustomobject]@{
-                Id          = "system-endpoint-platform-details"
-                Title       = "Endpoint Platform Details"
-                Description = "Endpoint identity and operating system evidence captured from the current System check plus the report header context."
-                Lines       = @(
+            New-ArcForgeSystemDetailSectionDefinition `
+                -Id "system-endpoint-platform-details" `
+                -Title "Endpoint Platform Details" `
+                -Description "Endpoint identity and operating system evidence captured from the current System check plus the report header context." `
+                -Lines @(
                     "[INFO] Computer Name: $ComputerValue"
                     "[INFO] Current User: $CurrentUserValue"
                     $SystemLines
                 )
-            }
-            [pscustomobject]@{
-                Id          = "system-vital-signs-details"
-                Title       = "Vital Signs Details"
-                Description = "Boot and uptime evidence captured by the current ArcForge uptime check. This section reports observed availability signals only; it does not diagnose the cause of long uptime or recent restarts."
-                Lines       = $UptimeLines
-            }
-            [pscustomobject]@{
-                Id          = "system-storage-details"
-                Title       = "Storage Details"
-                Description = "Storage evidence captured by the current ArcForge storage check. Future multi-drive support can expand here without crowding the System snapshot."
-                Lines       = $StorageLines
-            }
-            [pscustomobject]@{
-                Id          = "system-process-details"
-                Title       = "Process Health Details"
-                Description = "Process evidence captured by the current ArcForge process checks, including hung application status and the top memory consumers."
-                Lines       = $ProcessLines
-            }
-            [pscustomobject]@{
-                Id          = "system-core-services-details"
-                Title       = "Core Services Details"
-                Description = "Core Windows service evidence captured by the current ArcForge service checks. This confirms observed service state only; it does not compare against a service baseline or drift policy."
-                Lines       = $ServiceLines
-            }
+
+            New-ArcForgeSystemDetailSectionDefinition `
+                -Id "system-vital-signs-details" `
+                -Title "Vital Signs Details" `
+                -Description "Boot and uptime evidence captured by the current ArcForge uptime check. This section reports observed availability signals only; it does not diagnose the cause of long uptime or recent restarts." `
+                -Lines $UptimeLines
+
+            New-ArcForgeSystemDetailSectionDefinition `
+                -Id "system-storage-details" `
+                -Title "Storage Details" `
+                -Description "Storage evidence captured by the current ArcForge storage check. Future multi-drive support can expand here without crowding the System snapshot." `
+                -Lines $StorageLines
+
+            New-ArcForgeSystemDetailSectionDefinition `
+                -Id "system-process-details" `
+                -Title "Process Health Details" `
+                -Description "Process evidence captured by the current ArcForge process checks, including hung application status and the top memory consumers." `
+                -Lines $ProcessLines
+
+            New-ArcForgeSystemDetailSectionDefinition `
+                -Id "system-core-services-details" `
+                -Title "Core Services Details" `
+                -Description "Core Windows service evidence captured by the current ArcForge service checks. This confirms observed service state only; it does not compare against a service baseline or drift policy." `
+                -Lines $ServiceLines
         )
 
         $SystemDetailsHtml = New-ArcForgeSystemDetailSectionGroupHtml -DetailSections $DetailSectionDefinitions

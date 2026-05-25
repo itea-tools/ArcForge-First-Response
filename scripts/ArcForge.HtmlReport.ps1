@@ -11,7 +11,7 @@
 # - Do not add JavaScript, CDN assets, remote fonts, remote icons, remote images,
 #   or external dependencies in this module.
 #
-# v0.53 extraction scope:
+# v0.54 extraction scope:
 # - ConvertTo-HtmlSafeText remains the shared HTML encoding helper.
 # - New-StatusClass owns small status-to-CSS-class lookups used by the HTML
 #   report.
@@ -32,6 +32,8 @@
 #   markup used by the System Overview and System detail sections.
 # - New-ArcForgeSystemDetailSectionHtml owns static System detail section
 #   markup built from explicit parameters and module-owned System helpers.
+# - New-ArcForgeSystemDetailSectionDefinition owns construction of simple
+#   caller-ready System detail section definition objects from explicit fields.
 # - New-ArcForgeSystemDetailSectionGroupHtml owns static System detail section
 #   group assembly from caller-prepared detail section definitions.
 # - New-ArcForgeSystemOverviewHtml owns the static default-open System Overview
@@ -536,6 +538,30 @@ $DetailRowsHtml
 "@
 
     return New-ArcForgeSystemCollapsibleCardHtml -Id $Id -Title $Title -Description $Description -BodyHtml $DetailBodyHtml -ExtraClass "system-detail-collapsible-card"
+}
+
+# Builds a simple System detail section definition object from explicit fields.
+# This helper does not render HTML, select evidence, infer labels, alter line
+# contents, or own final layout. It only standardizes the object shape consumed
+# by New-ArcForgeSystemDetailSectionGroupHtml.
+#
+# v0.54: Moved System detail section definition object construction out of the
+# main renderer while preserving caller-owned IDs, titles, descriptions, line
+# values, ordering, and rendered output.
+function New-ArcForgeSystemDetailSectionDefinition {
+    param (
+        [string]$Id,
+        [string]$Title,
+        [string]$Description,
+        [object[]]$Lines
+    )
+
+    return [pscustomobject]@{
+        Id          = $Id
+        Title       = $Title
+        Description = $Description
+        Lines       = $Lines
+    }
 }
 
 # Builds the System detail section group from caller-prepared detail section
