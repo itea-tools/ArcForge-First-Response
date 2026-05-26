@@ -1,5 +1,13 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.54
+# ArcForge First Response Report v0.55
+#
+# v0.55 System evidence line preparation boundary notes:
+# - v0.55 moves only the narrow System report-header evidence value,
+#   record, and detail-line preparation into a local System helper.
+# - The helper prepares explicit Computer Name and Current User evidence
+#   records plus the existing Endpoint Platform detail line collection without
+#   changing detail anchors, titles, descriptions, order, CSS, report template
+#   ownership, scoring, console output, or TXT output.
 #
 # v0.54 System detail section definition boundary notes:
 # - v0.54 moves only the narrow System detail section definition object
@@ -1270,6 +1278,42 @@ $GroupsHtml
     # presentation logic. When modularizing, extract System rendering separately
     # from Network/Software/Security/Updates rendering.
 
+    # Prepares the report-header evidence values, records, and Endpoint Platform
+    # detail lines used by the System evidence section.
+    #
+    # This helper does not collect endpoint evidence, render HTML, choose detail
+    # section metadata, change labels, or alter ordering. It only preserves the
+    # existing Computer Name / Current User fallback behavior and the existing
+    # Endpoint Platform detail line collection shape.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemHeaderEvidenceSet {
+        param (
+            [string]$ComputerName,
+            [string]$CurrentUser,
+            [object[]]$SystemLines
+        )
+
+        $ComputerValue = if ([string]::IsNullOrWhiteSpace($ComputerName)) { "Evidence not captured." } else { $ComputerName }
+        $CurrentUserValue = if ([string]::IsNullOrWhiteSpace($CurrentUser)) { "Evidence not captured." } else { $CurrentUser }
+
+        $ComputerRecord = [pscustomobject]@{ Status = "INFO"; Label = "Computer Name:"; Value = $ComputerValue }
+        $UserRecord = [pscustomobject]@{ Status = "INFO"; Label = "Current User:"; Value = $CurrentUserValue }
+
+        $EndpointDetailLines = @(
+            "[INFO] Computer Name: $ComputerValue"
+            "[INFO] Current User: $CurrentUserValue"
+            $SystemLines
+        )
+
+        return [pscustomobject]@{
+            ComputerValue       = $ComputerValue
+            CurrentUserValue    = $CurrentUserValue
+            ComputerRecord      = $ComputerRecord
+            UserRecord          = $UserRecord
+            EndpointDetailLines = $EndpointDetailLines
+        }
+    }
+
     # Builds the v0.24 System evidence dashboard section.
     #
     # Why this exists:
@@ -1360,17 +1404,14 @@ $GroupsHtml
         # section orchestration here until a later release explicitly moves
         # another slice.
 
-        $ComputerValue = if ([string]::IsNullOrWhiteSpace($ComputerName)) { "Evidence not captured." } else { $ComputerName }
-        $CurrentUserValue = if ([string]::IsNullOrWhiteSpace($CurrentUser)) { "Evidence not captured." } else { $CurrentUser }
-        $ComputerRecord = [pscustomobject]@{ Status = "INFO"; Label = "Computer Name:"; Value = $ComputerValue }
-        $UserRecord = [pscustomobject]@{ Status = "INFO"; Label = "Current User:"; Value = $CurrentUserValue }
+        $HeaderEvidence = New-ArcForgeSystemHeaderEvidenceSet -ComputerName $ComputerName -CurrentUser $CurrentUser -SystemLines $SystemLines
         $OsNameRecord = Get-ArcForgeSystemEvidenceRecord -Lines $SystemLines -Label "OS Name:" -FallbackValue "Evidence not captured."
         $OsVersionRecord = Get-ArcForgeSystemEvidenceRecord -Lines $SystemLines -Label "OS Version:" -FallbackValue "Evidence not captured."
         $ArchitectureRecord = Get-ArcForgeSystemEvidenceRecord -Lines $SystemLines -Label "Architecture:" -FallbackValue "Evidence not captured."
 
         $EndpointRows = @(
-            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $ComputerRecord -DisplayLabel "Computer Name"
-            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $UserRecord -DisplayLabel "Current User"
+            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $HeaderEvidence.ComputerRecord -DisplayLabel "Computer Name"
+            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $HeaderEvidence.UserRecord -DisplayLabel "Current User"
             New-ArcForgeSystemEvidenceOnlyRowHtml -Record $OsNameRecord -DisplayLabel "OS Name"
             New-ArcForgeSystemEvidenceOnlyRowHtml -Record $OsVersionRecord -DisplayLabel "OS Version"
             New-ArcForgeSystemEvidenceOnlyRowHtml -Record $ArchitectureRecord -DisplayLabel "Architecture"
@@ -1614,11 +1655,7 @@ $($ServiceCells -join "`n")
                 -Id "system-endpoint-platform-details" `
                 -Title "Endpoint Platform Details" `
                 -Description "Endpoint identity and operating system evidence captured from the current System check plus the report header context." `
-                -Lines @(
-                    "[INFO] Computer Name: $ComputerValue"
-                    "[INFO] Current User: $CurrentUserValue"
-                    $SystemLines
-                )
+                -Lines $HeaderEvidence.EndpointDetailLines
 
             New-ArcForgeSystemDetailSectionDefinition `
                 -Id "system-vital-signs-details" `
