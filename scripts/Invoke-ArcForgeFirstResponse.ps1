@@ -1,5 +1,12 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.55
+# ArcForge First Response Report v0.56
+#
+# v0.56 System Overview Endpoint Platform boundary notes:
+# - v0.56 moves only the narrow Endpoint Platform System Overview row and
+#   panel-definition assembly into a local System presentation helper.
+# - The helper accepts already-prepared evidence records and does not change
+#   output behavior, detail anchors, titles, descriptions, order, CSS, report
+#   template ownership, scoring, console output, or TXT output.
 #
 # v0.55 System evidence line preparation boundary notes:
 # - v0.55 moves only the narrow System report-header evidence value,
@@ -1278,6 +1285,34 @@ $GroupsHtml
     # presentation logic. When modularizing, extract System rendering separately
     # from Network/Software/Security/Updates rendering.
 
+    # Builds the Endpoint Platform System Overview panel definition from
+    # already-prepared evidence records.
+    #
+    # This helper does not collect endpoint evidence, score findings, choose
+    # detail section metadata, or render unrelated System panels. It only keeps
+    # the existing Endpoint Platform row order and panel metadata together as a
+    # narrow presentation slice.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemOverviewEndpointPlatformPanelDefinition {
+        param (
+            [object]$ComputerRecord,
+            [object]$UserRecord,
+            [object]$OsNameRecord,
+            [object]$OsVersionRecord,
+            [object]$ArchitectureRecord
+        )
+
+        $EndpointRows = @(
+            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $ComputerRecord -DisplayLabel "Computer Name"
+            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $UserRecord -DisplayLabel "Current User"
+            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $OsNameRecord -DisplayLabel "OS Name"
+            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $OsVersionRecord -DisplayLabel "OS Version"
+            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $ArchitectureRecord -DisplayLabel "Architecture"
+        ) -join "`n"
+
+        return [pscustomobject]@{ Title = "Endpoint Platform"; Description = "Local identity and operating system evidence."; RowsHtml = $EndpointRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-endpoint-platform-details"; LinkText = "Endpoint Platform Details" }
+    }
+
     # Prepares the report-header evidence values, records, and Endpoint Platform
     # detail lines used by the System evidence section.
     #
@@ -1408,14 +1443,6 @@ $GroupsHtml
         $OsNameRecord = Get-ArcForgeSystemEvidenceRecord -Lines $SystemLines -Label "OS Name:" -FallbackValue "Evidence not captured."
         $OsVersionRecord = Get-ArcForgeSystemEvidenceRecord -Lines $SystemLines -Label "OS Version:" -FallbackValue "Evidence not captured."
         $ArchitectureRecord = Get-ArcForgeSystemEvidenceRecord -Lines $SystemLines -Label "Architecture:" -FallbackValue "Evidence not captured."
-
-        $EndpointRows = @(
-            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $HeaderEvidence.ComputerRecord -DisplayLabel "Computer Name"
-            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $HeaderEvidence.UserRecord -DisplayLabel "Current User"
-            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $OsNameRecord -DisplayLabel "OS Name"
-            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $OsVersionRecord -DisplayLabel "OS Version"
-            New-ArcForgeSystemEvidenceOnlyRowHtml -Record $ArchitectureRecord -DisplayLabel "Architecture"
-        ) -join "`n"
 
         $LastBootRecord = Get-ArcForgeSystemEvidenceRecord -Lines $UptimeLines -Label "Last Boot:"
         $UptimeDaysRecord = Get-ArcForgeSystemEvidenceRecord -Lines $UptimeLines -Label "Uptime Days:"
@@ -1635,8 +1662,15 @@ $($ServiceCells -join "`n")
                     </div>
 "@
 
+        $EndpointPlatformPanelDefinition = New-ArcForgeSystemOverviewEndpointPlatformPanelDefinition `
+            -ComputerRecord $HeaderEvidence.ComputerRecord `
+            -UserRecord $HeaderEvidence.UserRecord `
+            -OsNameRecord $OsNameRecord `
+            -OsVersionRecord $OsVersionRecord `
+            -ArchitectureRecord $ArchitectureRecord
+
         $PanelDefinitions = @(
-            [pscustomobject]@{ Title = "Endpoint Platform"; Description = "Local identity and operating system evidence."; RowsHtml = $EndpointRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-endpoint-platform-details"; LinkText = "Endpoint Platform Details" }
+            $EndpointPlatformPanelDefinition
             [pscustomobject]@{ Title = "Vital Signs"; Description = "Boot and uptime indicators for quick stability review."; RowsHtml = $VitalRows; ExtraClass = ""; LinkHref = "#system-vital-signs-details"; LinkText = "Vital Signs Details" }
             [pscustomobject]@{ Title = "Primary Drive Storage"; Description = "Primary system drive capacity."; RowsHtml = $StorageRows; ExtraClass = ""; LinkHref = "#system-storage-details"; LinkText = "Storage Details" }
             [pscustomobject]@{ Title = "Process Health"; Description = "Snapshot of hung applications and the top five memory consumers."; RowsHtml = $ProcessRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-process-details"; LinkText = "Process Health Details" }
