@@ -1,5 +1,13 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.57
+# ArcForge First Response Report v0.58
+#
+# v0.58 System Overview Primary Drive Storage boundary notes:
+# - v0.58 moves only the narrow Primary Drive Storage System Overview
+#   panel-definition assembly into a local System presentation helper.
+# - The helper accepts already-prepared storage row HTML and does not change
+#   storage evidence collection, storage visual rendering, detail anchors, titles,
+#   descriptions, order, CSS, report template ownership, scoring, console output,
+#   or TXT output.
 #
 # v0.57 System Overview Vital Signs boundary notes:
 # - v0.57 moves only the narrow Vital Signs System Overview row and
@@ -1342,6 +1350,22 @@ $GroupsHtml
         return [pscustomobject]@{ Title = "Vital Signs"; Description = "Boot and uptime indicators for quick stability review."; RowsHtml = $VitalRows; ExtraClass = ""; LinkHref = "#system-vital-signs-details"; LinkText = "Vital Signs Details" }
     }
 
+    # Builds the Primary Drive Storage System Overview panel definition from
+    # already-prepared storage row HTML.
+    #
+    # This helper does not collect storage evidence, calculate storage values,
+    # render the storage widget, score findings, choose detail section metadata,
+    # or render unrelated System panels. It only keeps the existing Primary Drive
+    # Storage panel metadata together as a narrow presentation slice.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemOverviewPrimaryDriveStoragePanelDefinition {
+        param (
+            [string]$RowsHtml
+        )
+
+        return [pscustomobject]@{ Title = "Primary Drive Storage"; Description = "Primary system drive capacity."; RowsHtml = $RowsHtml; ExtraClass = ""; LinkHref = "#system-storage-details"; LinkText = "Storage Details" }
+    }
+
     # Prepares the report-header evidence values, records, and Endpoint Platform
     # detail lines used by the System evidence section.
     #
@@ -1697,10 +1721,13 @@ $($ServiceCells -join "`n")
             -LastBootRecord $LastBootRecord `
             -UptimeDaysRecord $UptimeDaysRecord
 
+        $PrimaryDriveStoragePanelDefinition = New-ArcForgeSystemOverviewPrimaryDriveStoragePanelDefinition `
+            -RowsHtml $StorageRows
+
         $PanelDefinitions = @(
             $EndpointPlatformPanelDefinition
             $VitalSignsPanelDefinition
-            [pscustomobject]@{ Title = "Primary Drive Storage"; Description = "Primary system drive capacity."; RowsHtml = $StorageRows; ExtraClass = ""; LinkHref = "#system-storage-details"; LinkText = "Storage Details" }
+            $PrimaryDriveStoragePanelDefinition
             [pscustomobject]@{ Title = "Process Health"; Description = "Snapshot of hung applications and the top five memory consumers."; RowsHtml = $ProcessRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-process-details"; LinkText = "Process Health Details" }
             [pscustomobject]@{ Title = "Core Services Matrix"; Description = "Critical Windows service pipes that affect triage trust."; RowsHtml = $ServiceRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-core-services-details"; LinkText = "Core Services Details" }
         )
