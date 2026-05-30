@@ -1,5 +1,13 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.58
+# ArcForge First Response Report v0.59
+#
+# v0.59 System Overview Process Health boundary notes:
+# - v0.59 moves only the narrow Process Health System Overview
+#   panel-definition assembly into a local System presentation helper.
+# - The helper accepts already-prepared Process Health row HTML and does not
+#   change process evidence collection, process visual rendering, detail anchors,
+#   titles, descriptions, order, CSS, report template ownership, scoring, console
+#   output, or TXT output.
 #
 # v0.58 System Overview Primary Drive Storage boundary notes:
 # - v0.58 moves only the narrow Primary Drive Storage System Overview
@@ -1366,6 +1374,22 @@ $GroupsHtml
         return [pscustomobject]@{ Title = "Primary Drive Storage"; Description = "Primary system drive capacity."; RowsHtml = $RowsHtml; ExtraClass = ""; LinkHref = "#system-storage-details"; LinkText = "Storage Details" }
     }
 
+    # Builds the Process Health System Overview panel definition from
+    # already-prepared Process Health row HTML.
+    #
+    # This helper does not collect process evidence, render the Process Health
+    # snapshot rows, score findings, choose detail section metadata, or render
+    # unrelated System panels. It only keeps the existing Process Health panel
+    # metadata together as a narrow presentation slice.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemOverviewProcessHealthPanelDefinition {
+        param (
+            [string]$RowsHtml
+        )
+
+        return [pscustomobject]@{ Title = "Process Health"; Description = "Snapshot of hung applications and the top five memory consumers."; RowsHtml = $RowsHtml; ExtraClass = "system-panel-wide"; LinkHref = "#system-process-details"; LinkText = "Process Health Details" }
+    }
+
     # Prepares the report-header evidence values, records, and Endpoint Platform
     # detail lines used by the System evidence section.
     #
@@ -1724,11 +1748,14 @@ $($ServiceCells -join "`n")
         $PrimaryDriveStoragePanelDefinition = New-ArcForgeSystemOverviewPrimaryDriveStoragePanelDefinition `
             -RowsHtml $StorageRows
 
+        $ProcessHealthPanelDefinition = New-ArcForgeSystemOverviewProcessHealthPanelDefinition `
+            -RowsHtml $ProcessRows
+
         $PanelDefinitions = @(
             $EndpointPlatformPanelDefinition
             $VitalSignsPanelDefinition
             $PrimaryDriveStoragePanelDefinition
-            [pscustomobject]@{ Title = "Process Health"; Description = "Snapshot of hung applications and the top five memory consumers."; RowsHtml = $ProcessRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-process-details"; LinkText = "Process Health Details" }
+            $ProcessHealthPanelDefinition
             [pscustomobject]@{ Title = "Core Services Matrix"; Description = "Critical Windows service pipes that affect triage trust."; RowsHtml = $ServiceRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-core-services-details"; LinkText = "Core Services Details" }
         )
 
