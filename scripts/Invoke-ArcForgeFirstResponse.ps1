@@ -1,5 +1,13 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.59
+# ArcForge First Response Report v0.60
+#
+# v0.60 System Overview Core Services Matrix boundary notes:
+# - v0.60 moves only the narrow Core Services Matrix System Overview
+#   panel-definition assembly into a local System presentation helper.
+# - The helper accepts already-prepared Core Services Matrix row HTML and does
+#   not change service evidence collection, service row generation, service
+#   status logic, detail anchors, titles, descriptions, order, CSS, report
+#   template ownership, scoring, console output, or TXT output.
 #
 # v0.59 System Overview Process Health boundary notes:
 # - v0.59 moves only the narrow Process Health System Overview
@@ -1390,6 +1398,23 @@ $GroupsHtml
         return [pscustomobject]@{ Title = "Process Health"; Description = "Snapshot of hung applications and the top five memory consumers."; RowsHtml = $RowsHtml; ExtraClass = "system-panel-wide"; LinkHref = "#system-process-details"; LinkText = "Process Health Details" }
     }
 
+    # Builds the Core Services Matrix System Overview panel definition from
+    # already-prepared Core Services Matrix row HTML.
+    #
+    # This helper does not collect service evidence, generate service matrix
+    # rows, change service status logic, score findings, choose detail section
+    # metadata, or render unrelated System panels. It only keeps the existing
+    # Core Services Matrix panel metadata together as a narrow presentation
+    # slice.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemOverviewCoreServicesMatrixPanelDefinition {
+        param (
+            [string]$RowsHtml
+        )
+
+        return [pscustomobject]@{ Title = "Core Services Matrix"; Description = "Critical Windows service pipes that affect triage trust."; RowsHtml = $RowsHtml; ExtraClass = "system-panel-wide"; LinkHref = "#system-core-services-details"; LinkText = "Core Services Details" }
+    }
+
     # Prepares the report-header evidence values, records, and Endpoint Platform
     # detail lines used by the System evidence section.
     #
@@ -1756,7 +1781,7 @@ $($ServiceCells -join "`n")
             $VitalSignsPanelDefinition
             $PrimaryDriveStoragePanelDefinition
             $ProcessHealthPanelDefinition
-            [pscustomobject]@{ Title = "Core Services Matrix"; Description = "Critical Windows service pipes that affect triage trust."; RowsHtml = $ServiceRows; ExtraClass = "system-panel-wide"; LinkHref = "#system-core-services-details"; LinkText = "Core Services Details" }
+            New-ArcForgeSystemOverviewCoreServicesMatrixPanelDefinition -RowsHtml $ServiceRows
         )
 
         $Panels = New-ArcForgeSystemPanelGroupHtml -Panels $PanelDefinitions
