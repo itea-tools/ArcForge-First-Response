@@ -1,5 +1,13 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.60
+# ArcForge First Response Report v0.61
+#
+# v0.61 System Overview panel-definition group boundary notes:
+# - v0.61 moves only the System Overview panel-definition group assembly
+#   into a local System presentation helper.
+# - The helper accepts already-prepared panel definitions and returns them in
+#   the existing System Overview order. It does not rebuild panel metadata,
+#   change rows, detail anchors, titles, descriptions, order, CSS, report
+#   template ownership, scoring, console output, or TXT output.
 #
 # v0.60 System Overview Core Services Matrix boundary notes:
 # - v0.60 moves only the narrow Core Services Matrix System Overview
@@ -1415,6 +1423,32 @@ $GroupsHtml
         return [pscustomobject]@{ Title = "Core Services Matrix"; Description = "Critical Windows service pipes that affect triage trust."; RowsHtml = $RowsHtml; ExtraClass = "system-panel-wide"; LinkHref = "#system-core-services-details"; LinkText = "Core Services Details" }
     }
 
+    # Groups already-prepared System Overview panel definitions in the existing
+    # display order.
+    #
+    # This helper does not collect evidence, build panel metadata, render panel
+    # HTML, change rows, change detail anchors, or choose CSS classes. It only
+    # preserves the current System Overview panel sequence as a narrow local
+    # presentation boundary.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemOverviewPanelDefinitions {
+        param (
+            [object]$EndpointPlatformPanelDefinition,
+            [object]$VitalSignsPanelDefinition,
+            [object]$PrimaryDriveStoragePanelDefinition,
+            [object]$ProcessHealthPanelDefinition,
+            [object]$CoreServicesMatrixPanelDefinition
+        )
+
+        return @(
+            $EndpointPlatformPanelDefinition
+            $VitalSignsPanelDefinition
+            $PrimaryDriveStoragePanelDefinition
+            $ProcessHealthPanelDefinition
+            $CoreServicesMatrixPanelDefinition
+        )
+    }
+
     # Prepares the report-header evidence values, records, and Endpoint Platform
     # detail lines used by the System evidence section.
     #
@@ -1776,13 +1810,15 @@ $($ServiceCells -join "`n")
         $ProcessHealthPanelDefinition = New-ArcForgeSystemOverviewProcessHealthPanelDefinition `
             -RowsHtml $ProcessRows
 
-        $PanelDefinitions = @(
-            $EndpointPlatformPanelDefinition
-            $VitalSignsPanelDefinition
-            $PrimaryDriveStoragePanelDefinition
-            $ProcessHealthPanelDefinition
-            New-ArcForgeSystemOverviewCoreServicesMatrixPanelDefinition -RowsHtml $ServiceRows
-        )
+        $CoreServicesMatrixPanelDefinition = New-ArcForgeSystemOverviewCoreServicesMatrixPanelDefinition `
+            -RowsHtml $ServiceRows
+
+        $PanelDefinitions = New-ArcForgeSystemOverviewPanelDefinitions `
+            -EndpointPlatformPanelDefinition $EndpointPlatformPanelDefinition `
+            -VitalSignsPanelDefinition $VitalSignsPanelDefinition `
+            -PrimaryDriveStoragePanelDefinition $PrimaryDriveStoragePanelDefinition `
+            -ProcessHealthPanelDefinition $ProcessHealthPanelDefinition `
+            -CoreServicesMatrixPanelDefinition $CoreServicesMatrixPanelDefinition
 
         $Panels = New-ArcForgeSystemPanelGroupHtml -Panels $PanelDefinitions
 
