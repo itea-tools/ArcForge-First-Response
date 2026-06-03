@@ -1,5 +1,13 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.62
+# ArcForge First Response Report v0.63
+#
+# v0.63 System evidence section assembly boundary notes:
+# - v0.63 moves only the final System evidence section HTML assembly
+#   into a local System presentation helper.
+# - The helper accepts already-prepared System Overview HTML and System Details
+#   HTML. It does not collect evidence, build metadata, render individual
+#   panels or detail sections, change anchors, titles, descriptions, CSS,
+#   collapse behavior, scoring, console output, or TXT output.
 #
 # v0.62 System detail section-definition group boundary notes:
 # - v0.62 moves only the System detail section-definition group assembly
@@ -1483,6 +1491,35 @@ $GroupsHtml
         )
     }
 
+    # Assembles the full System evidence section from already-prepared System
+    # Overview HTML and System Details HTML.
+    #
+    # This helper does not collect evidence, build panel metadata, build detail
+    # metadata, render individual overview panels, render individual detail
+    # sections, change anchors, change titles, change descriptions, change CSS,
+    # or change collapse behavior. It only preserves the existing final System
+    # section wrapper as a narrow local presentation boundary.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemEvidenceSectionHtml {
+        param (
+            [string]$SystemOverviewHtml,
+            [string]$SystemDetailsHtml
+        )
+
+        return @"
+        <section id="system" class="section system-evidence">
+            <div class="section-title system-section-title">
+                <h2>System</h2>
+                <p>Endpoint evidence grouped for fast offline triage. System Overview opens by default for quick triage; deeper System details start collapsed and can be expanded without JavaScript.</p>
+            </div>
+            <div class="system-collapsible-stack" aria-label="System evidence sections">
+$SystemOverviewHtml
+$SystemDetailsHtml
+            </div>
+        </section>
+"@
+    }
+
     # Prepares the report-header evidence values, records, and Endpoint Platform
     # detail lines used by the System evidence section.
     #
@@ -1901,18 +1938,9 @@ $($ServiceCells -join "`n")
         $SystemDetailsHtml = New-ArcForgeSystemDetailSectionGroupHtml -DetailSections $DetailSectionDefinitions
         $SystemOverviewHtml = New-ArcForgeSystemOverviewHtml -PanelsHtml $Panels
 
-        return @"
-        <section id="system" class="section system-evidence">
-            <div class="section-title system-section-title">
-                <h2>System</h2>
-                <p>Endpoint evidence grouped for fast offline triage. System Overview opens by default for quick triage; deeper System details start collapsed and can be expanded without JavaScript.</p>
-            </div>
-            <div class="system-collapsible-stack" aria-label="System evidence sections">
-$SystemOverviewHtml
-$SystemDetailsHtml
-            </div>
-        </section>
-"@
+        return New-ArcForgeSystemEvidenceSectionHtml `
+            -SystemOverviewHtml $SystemOverviewHtml `
+            -SystemDetailsHtml $SystemDetailsHtml
     }
 
     # -------------------------------------------------------------------------
