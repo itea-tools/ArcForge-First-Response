@@ -1,5 +1,13 @@
 # ArcForge First Response
-# ArcForge First Response Report v0.63
+# ArcForge First Response Report v0.64
+#
+# v0.64 System Overview panel group assembly boundary notes:
+# - v0.64 moves only the System Overview panel group HTML assembly
+#   into a local System presentation helper.
+# - The helper accepts already-built System Overview panel HTML and does
+#   not collect evidence, build panel metadata, render individual panels,
+#   change anchors, titles, descriptions, CSS, collapse behavior, scoring,
+#   console output, or TXT output.
 #
 # v0.63 System evidence section assembly boundary notes:
 # - v0.63 moves only the final System evidence section HTML assembly
@@ -1491,6 +1499,22 @@ $GroupsHtml
         )
     }
 
+    # Assembles the System Overview panel group from already-built panel HTML.
+    #
+    # This helper does not collect evidence, build panel metadata, render
+    # individual panels, change panel order, change anchors, change titles,
+    # change descriptions, change CSS, or change collapse behavior. It only
+    # preserves the existing System Overview wrapper call as a narrow local
+    # presentation boundary.
+    # Future module owner: scripts/ArcForge.Html.System.ps1
+    function New-ArcForgeSystemOverviewPanelGroupHtml {
+        param (
+            [string]$PanelsHtml
+        )
+
+        return New-ArcForgeSystemOverviewHtml -PanelsHtml $PanelsHtml
+    }
+
     # Assembles the full System evidence section from already-prepared System
     # Overview HTML and System Details HTML.
     #
@@ -1936,7 +1960,7 @@ $($ServiceCells -join "`n")
             -CoreServicesDetailSectionDefinition $CoreServicesDetailSectionDefinition
 
         $SystemDetailsHtml = New-ArcForgeSystemDetailSectionGroupHtml -DetailSections $DetailSectionDefinitions
-        $SystemOverviewHtml = New-ArcForgeSystemOverviewHtml -PanelsHtml $Panels
+        $SystemOverviewHtml = New-ArcForgeSystemOverviewPanelGroupHtml -PanelsHtml $Panels
 
         return New-ArcForgeSystemEvidenceSectionHtml `
             -SystemOverviewHtml $SystemOverviewHtml `
